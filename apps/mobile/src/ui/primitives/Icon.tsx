@@ -3,9 +3,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../theme/ThemeProvider';
 import { Theme } from '../../theme/theme';
 
-type IconName = keyof typeof Ionicons.glyphMap;
-type IconSize = 'sm' | 'md' | 'lg';
-type IconColor = 'primary' | 'secondary' | 'muted' | 'inverse' | 'brand' | 'danger' | 'warning' | 'success' | 'info';
+export type IconName = keyof typeof Ionicons.glyphMap;
+export type IconSize = 'sm' | 'md' | 'lg';
+export type IconColor = 'primary' | 'secondary' | 'muted' | 'inverse' | 'brand' | 'danger' | 'warning' | 'success' | 'info';
 
 export interface IconProps {
   name: IconName;
