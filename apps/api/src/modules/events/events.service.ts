@@ -1,0 +1,215 @@
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { MemberRole } from '@prisma/client';
+import { PrismaService } from '../../prisma/prisma.service';
+import { CalendarPolicy } from '../../libs/policies/calendar.policy';
+import { OptimisticLockConflictException } from '../../common/errors/conflict.exception';
+import { OkRevisionResponseDto } from '../../common/dto/ok-revision.dto';
+import {
+  CreateEventDto,
+  UpdateEventDto,
+  EventsQueryDto,
+  EventDto,
+  ListEventsResponseDto,
+} from './events.dto';
+
+@Injectable()
+export class EventsService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly policy: CalendarPolicy,
+  ) {}
+
+  async listEvents(userId: string, q: EventsQueryDto): Promise<ListEventsResponseDto> {
+    await this.policy.authorize(userId, q.calendarId, MemberRole.MEMBER);
+
+    const from = new Date(q.from);
+    const to = new Date(q.to);
+
+    const events = await this.prisma.event.findMany({
+      where: {
+        calendarId: q.calendarId,
+        deletedAt: null,
+        OR: [
+          { allDay: false, startAtUtc: { lt: to }, endAtUtc: { gt: from } },
+          { allDay: true, startDate: { lt: to }, endDate: { gt: from } },
+        ],
+      },
+      orderBy: [{ allDay: 'asc' }, { startAtUtc: 'asc' }, { startDate: 'asc' }],
+    });
+
+    const items: EventDto[] = events.map((e) => this.toEventDto(e));
+
+    return { items };
+  }
+
+  async createEvent(userId: string, dto: CreateEventDto): Promise<OkRevisionResponseDto> {
+    await this.policy.authorize(userId, dto.calendarId, MemberRole.MEMBER);
+
+    this.validateTimeFields(dto);
+
+    const event = await this.prisma.event.create({
+      data: {
+        calendarId: dto.calendarId,
+        creatorId: userId,
+        title: dto.title,
+        note: dto.note ?? null,
+        location: dto.location ?? null,
+        timezone: dto.timezone,
+        allDay: dto.allDay ?? false,
+        startAtUtc: dto.allDay ? null : new Date(dto.startAtUtc),
+        endAtUtc: dto.allDay ? null : new Date(dto.endAtUtc),
+        startDate: dto.allDay ? new Date(dto.startDate) : null,
+        endDate: dto.allDay ? new Date(dto.endDate) : null,
+        color: dto.color ?? null,
+        remindMinutes: dto.remindMinutes ?? null,
+      },
+    });
+
+    return { ok: true, revision: event.revision.toString() };
+  }
+
+  async updateEvent(
+    userId: string,
+    eventId: string,
+    dto: UpdateEventDto,
+  ): Promise<OkRevisionResponseDto> {
+    const existing = await this.prisma.event.findFirst({
+      where: { id: eventId, deletedAt: null },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Event not found');
+    }
+
+    await this.policy.authorize(userId, existing.calendarId, MemberRole.MEMBER);
+
+    const { version, ...fields } = dto;
+
+    const data: Record<string, unknown> = {};
+    if (fields.title !== undefined) data.title = fields.title;
+    if (fields.note !== undefined) data.note = fields.note;
+    if (fields.location !== undefined) data.location = fields.location;
+    if (fields.timezone !== undefined) data.timezone = fields.timezone;
+    if (fields.color !== undefined) data.color = fields.color;
+    if (fields.remindMinutes !== undefined) data.remindMinutes = fields.remindMinutes;
+
+    if (fields.allDay !== undefined) {
+      data.allDay = fields.allDay;
+    }
+
+    const resolvedAllDay = (fields.allDay !== undefined ? fields.allDay : existing.allDay);
+
+    if (fields.startAtUtc !== undefined) data.startAtUtc = new Date(fields.startAtUtc);
+    if (fields.endAtUtc !== undefined) data.endAtUtc = new Date(fields.endAtUtc);
+    if (fields.startDate !== undefined) data.startDate = new Date(fields.startDate);
+    if (fields.endDate !== undefined) data.endDate = new Date(fields.endDate);
+
+    if (resolvedAllDay) {
+      if (data.startAtUtc !== undefined || data.endAtUtc !== undefined) {
+        throw new BadRequestException('All-day events must not have startAtUtc/endAtUtc');
+      }
+    } else {
+      if (data.startDate !== undefined || data.endDate !== undefined) {
+        throw new BadRequestException('Timed events must not have startDate/endDate');
+      }
+    }
+
+    data.version = { increment: 1 };
+
+    const result = await this.prisma.event.updateMany({
+      where: { id: eventId, version, deletedAt: null },
+      data,
+    });
+
+    if (result.count === 0) {
+      throw new OptimisticLockConflictException();
+    }
+
+    const updated = await this.prisma.event.findUniqueOrThrow({
+      where: { id: eventId },
+    });
+
+    return { ok: true, revision: updated.revision.toString() };
+  }
+
+  async deleteEvent(userId: string, eventId: string): Promise<OkRevisionResponseDto> {
+    const existing = await this.prisma.event.findFirst({
+      where: { id: eventId, deletedAt: null },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Event not found');
+    }
+
+    await this.policy.authorize(userId, existing.calendarId, MemberRole.MEMBER);
+
+    const updated = await this.prisma.event.update({
+      where: { id: eventId },
+      data: { deletedAt: new Date() },
+    });
+
+    return { ok: true, revision: updated.revision.toString() };
+  }
+
+  private validateTimeFields(dto: CreateEventDto): void {
+    if (dto.allDay) {
+      if (dto.startAtUtc || dto.endAtUtc) {
+        throw new BadRequestException('All-day events must not have startAtUtc/endAtUtc');
+      }
+      if (!dto.startDate || !dto.endDate) {
+        throw new BadRequestException('All-day events require startDate and endDate');
+      }
+      if (dto.endDate <= dto.startDate) {
+        throw new BadRequestException('endDate must be after startDate');
+      }
+    } else {
+      if (dto.startDate || dto.endDate) {
+        throw new BadRequestException('Timed events must not have startDate/endDate');
+      }
+      if (!dto.startAtUtc || !dto.endAtUtc) {
+        throw new BadRequestException('Timed events require startAtUtc and endAtUtc');
+      }
+      if (new Date(dto.endAtUtc) <= new Date(dto.startAtUtc)) {
+        throw new BadRequestException('endAtUtc must be after startAtUtc');
+      }
+    }
+  }
+
+  private toEventDto(e: {
+    id: string;
+    calendarId: string;
+    creatorId: string;
+    title: string;
+    note: string | null;
+    location: string | null;
+    timezone: string;
+    allDay: boolean;
+    startAtUtc: Date | null;
+    endAtUtc: Date | null;
+    startDate: Date | null;
+    endDate: Date | null;
+    color: string | null;
+    remindMinutes: number | null;
+    version: number;
+    revision: bigint;
+  }): EventDto {
+    return {
+      id: e.id,
+      calendarId: e.calendarId,
+      creatorId: e.creatorId,
+      title: e.title,
+      note: e.note,
+      location: e.location,
+      timezone: e.timezone,
+      allDay: e.allDay,
+      startAtUtc: e.startAtUtc?.toISOString() ?? null,
+      endAtUtc: e.endAtUtc?.toISOString() ?? null,
+      startDate: e.startDate ? e.startDate.toISOString().slice(0, 10) : null,
+      endDate: e.endDate ? e.endDate.toISOString().slice(0, 10) : null,
+      color: e.color,
+      remindMinutes: e.remindMinutes,
+      version: e.version,
+      revision: e.revision.toString(),
+    };
+  }
+}
