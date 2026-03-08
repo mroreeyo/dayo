@@ -1,9 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConflictException, GoneException, NotFoundException } from '@nestjs/common';
-import { MemberRole } from '@prisma/client';
+import { AuditAction, AuditEntityType, MemberRole } from '@prisma/client';
 import { InvitesService } from './invites.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CalendarPolicy } from '../../libs/policies/calendar.policy';
+import { AuditService } from '../audit/audit.service';
 
 const mockPrisma = {
   invite: {
@@ -22,6 +23,10 @@ const mockPolicy = {
   authorize: jest.fn(),
 };
 
+const mockAudit = {
+  record: jest.fn().mockResolvedValue(undefined),
+};
+
 describe('InvitesService', () => {
   let service: InvitesService;
 
@@ -33,6 +38,7 @@ describe('InvitesService', () => {
         InvitesService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: CalendarPolicy, useValue: mockPolicy },
+        { provide: AuditService, useValue: mockAudit },
       ],
     }).compile();
 
@@ -97,6 +103,35 @@ describe('InvitesService', () => {
 
       expect(result.invite.expiresAt).toBe(expiresAt.toISOString());
       expect(result.invite.maxUses).toBe(5);
+    });
+
+    it('records CREATE audit on invite creation', async () => {
+      mockPolicy.authorize.mockResolvedValue({
+        calendarId,
+        userId,
+        role: MemberRole.ADMIN,
+      });
+
+      mockPrisma.invite.create.mockResolvedValue({
+        id: inviteId,
+        calendarId,
+        code: 'abc123def456ghi789jkl012mno345pq',
+        expiresAt: null,
+        maxUses: null,
+        useCount: 0,
+        revision: BigInt(100),
+      });
+
+      await service.createInvite(userId, calendarId, {});
+
+      expect(mockAudit.record).toHaveBeenCalledWith(
+        userId,
+        calendarId,
+        AuditEntityType.INVITE,
+        inviteId,
+        AuditAction.CREATE,
+        { maxUses: null, expiresAt: null },
+      );
     });
 
     it('generates code with at least 32 characters', async () => {
@@ -170,6 +205,37 @@ describe('InvitesService', () => {
 
       expect(result.calendarId).toBe(calendarId);
       expect(result.revision).toBe('201');
+    });
+
+    it('records JOIN audit on successful join', async () => {
+      mockPrisma.invite.findUnique.mockResolvedValue(validInvite);
+      mockPrisma.calendarMember.findUnique.mockResolvedValue(null);
+
+      const memberResult = {
+        id: 'member-1',
+        calendarId,
+        userId,
+        role: MemberRole.MEMBER,
+        calendar: { id: calendarId, revision: BigInt(201) },
+      };
+
+      mockPrisma.$transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
+        return fn({
+          invite: { update: jest.fn().mockResolvedValue({}) },
+          calendarMember: { create: jest.fn().mockResolvedValue(memberResult) },
+        });
+      });
+
+      await service.joinByCode(userId, 'valid-code');
+
+      expect(mockAudit.record).toHaveBeenCalledWith(
+        userId,
+        calendarId,
+        AuditEntityType.MEMBER,
+        'member-1',
+        AuditAction.JOIN,
+        { inviteCode: 'valid-code' },
+      );
     });
 
     it('throws NotFoundException for invalid code', async () => {

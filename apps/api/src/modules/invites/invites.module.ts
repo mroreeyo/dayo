@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common';
 import { CalendarsModule } from '../calendars/calendars.module';
+import { AuditModule } from '../audit/audit.module';
 import { InvitesController } from './invites.controller';
 import { InvitesService } from './invites.service';
 
 @Module({
-  imports: [CalendarsModule],
+  imports: [CalendarsModule, AuditModule],
   controllers: [InvitesController],
   providers: [InvitesService],
 })

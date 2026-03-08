@@ -5,9 +5,10 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { MemberRole } from '@prisma/client';
+import { AuditAction, AuditEntityType, MemberRole } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CalendarPolicy } from '../../libs/policies/calendar.policy';
+import { AuditService } from '../audit/audit.service';
 import {
   CreateInviteDto,
   CreateInviteResponseDto,
@@ -46,6 +47,7 @@ export class InvitesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly policy: CalendarPolicy,
+    private readonly audit: AuditService,
   ) {}
 
   async createInvite(
@@ -63,6 +65,15 @@ export class InvitesService {
         maxUses: dto.maxUses ?? null,
       },
     });
+
+    await this.audit.record(
+      userId,
+      calendarId,
+      AuditEntityType.INVITE,
+      invite.id,
+      AuditAction.CREATE,
+      { maxUses: invite.maxUses, expiresAt: invite.expiresAt?.toISOString() ?? null },
+    );
 
     return { invite: toInviteDto(invite) };
   }
@@ -113,6 +124,15 @@ export class InvitesService {
         include: { calendar: true },
       });
     });
+
+    await this.audit.record(
+      userId,
+      member.calendarId,
+      AuditEntityType.MEMBER,
+      member.id,
+      AuditAction.JOIN,
+      { inviteCode: code },
+    );
 
     return {
       calendarId: member.calendarId,
