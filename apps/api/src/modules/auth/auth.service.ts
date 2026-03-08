@@ -7,6 +7,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { JwtPayload } from '../../common/auth/types';
+import { GoogleProfile } from '../../common/auth/google.strategy';
 import { RegisterDto, LoginDto, AuthResponseDto } from './dto';
 
 const BCRYPT_ROUNDS = 12;
@@ -88,6 +89,71 @@ export class AuthService {
     );
 
     return { accessToken };
+  }
+
+  async googleLogin(profile: GoogleProfile): Promise<AuthResponseDto> {
+    const byGoogleSub = await this.prisma.user.findUnique({
+      where: { googleSub: profile.googleSub },
+    });
+
+    if (byGoogleSub) {
+      const tokens = this.issueTokens({
+        sub: byGoogleSub.id,
+        email: byGoogleSub.email,
+      });
+      return {
+        tokens,
+        user: {
+          id: byGoogleSub.id,
+          email: byGoogleSub.email,
+          nickname: byGoogleSub.nickname,
+        },
+      };
+    }
+
+    const byEmail = await this.prisma.user.findUnique({
+      where: { email: profile.email },
+    });
+
+    if (byEmail) {
+      const linked = await this.prisma.user.update({
+        where: { id: byEmail.id },
+        data: { googleSub: profile.googleSub },
+      });
+      const tokens = this.issueTokens({
+        sub: linked.id,
+        email: linked.email,
+      });
+      return {
+        tokens,
+        user: {
+          id: linked.id,
+          email: linked.email,
+          nickname: linked.nickname,
+        },
+      };
+    }
+
+    const newUser = await this.prisma.user.create({
+      data: {
+        email: profile.email,
+        nickname: profile.nickname,
+        googleSub: profile.googleSub,
+        avatarUrl: profile.avatarUrl,
+      },
+    });
+    const tokens = this.issueTokens({
+      sub: newUser.id,
+      email: newUser.email,
+    });
+    return {
+      tokens,
+      user: {
+        id: newUser.id,
+        email: newUser.email,
+        nickname: newUser.nickname,
+      },
+    };
   }
 
   private issueTokens(payload: JwtPayload): {
