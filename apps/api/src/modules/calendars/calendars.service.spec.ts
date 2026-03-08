@@ -1,9 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ForbiddenException } from '@nestjs/common';
-import { MemberRole } from '@prisma/client';
+import { AuditAction, AuditEntityType, MemberRole } from '@prisma/client';
 import { CalendarsService } from './calendars.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CalendarPolicy } from '../../libs/policies/calendar.policy';
+import { AuditService } from '../audit/audit.service';
 
 const mockPrisma = {
   calendarMember: {
@@ -22,6 +23,10 @@ const mockPolicy = {
   authorize: jest.fn(),
 };
 
+const mockAudit = {
+  record: jest.fn().mockResolvedValue(undefined),
+};
+
 describe('CalendarsService', () => {
   let service: CalendarsService;
 
@@ -33,6 +38,7 @@ describe('CalendarsService', () => {
         CalendarsService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: CalendarPolicy, useValue: mockPolicy },
+        { provide: AuditService, useValue: mockAudit },
       ],
     }).compile();
 
@@ -106,6 +112,29 @@ describe('CalendarsService', () => {
       });
     });
 
+    it('records CREATE audit on calendar creation', async () => {
+      const calendar = { id: calendarId, name: 'Audited', color: '#FFAA00', revision: BigInt(1) };
+      const member = { calendarId, userId, role: MemberRole.OWNER };
+
+      mockPrisma.$transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
+        return fn({
+          calendar: { create: jest.fn().mockResolvedValue(calendar) },
+          calendarMember: { create: jest.fn().mockResolvedValue(member) },
+        });
+      });
+
+      await service.createCalendar(userId, { name: 'Audited', color: '#FFAA00' });
+
+      expect(mockAudit.record).toHaveBeenCalledWith(
+        userId,
+        calendarId,
+        AuditEntityType.CALENDAR,
+        calendarId,
+        AuditAction.CREATE,
+        { name: 'Audited', color: '#FFAA00' },
+      );
+    });
+
     it('creates calendar with null color when not provided', async () => {
       const calendar = { id: calendarId, name: 'Minimal', color: null, revision: BigInt(2) };
       const member = { calendarId, userId, role: MemberRole.OWNER };
@@ -146,6 +175,33 @@ describe('CalendarsService', () => {
       expect(mockPolicy.authorize).toHaveBeenCalledWith(userId, calendarId, MemberRole.ADMIN);
     });
 
+    it('records UPDATE audit on calendar update', async () => {
+      mockPolicy.authorize.mockResolvedValue({
+        calendarId,
+        userId,
+        role: MemberRole.ADMIN,
+      });
+
+      const updated = { id: calendarId, name: 'Updated', color: '#00FF00', revision: BigInt(10) };
+      mockPrisma.calendar.update.mockResolvedValue(updated);
+      mockPrisma.calendarMember.findUnique.mockResolvedValue({
+        calendarId,
+        userId,
+        role: MemberRole.ADMIN,
+      });
+
+      await service.updateCalendar(userId, calendarId, { name: 'Updated' });
+
+      expect(mockAudit.record).toHaveBeenCalledWith(
+        userId,
+        calendarId,
+        AuditEntityType.CALENDAR,
+        calendarId,
+        AuditAction.UPDATE,
+        { name: 'Updated' },
+      );
+    });
+
     it('rejects MEMBER trying to update', async () => {
       mockPolicy.authorize.mockRejectedValue(
         new ForbiddenException('Requires ADMIN role or higher'),
@@ -174,6 +230,29 @@ describe('CalendarsService', () => {
 
       expect(result).toEqual({ ok: true, revision: '50' });
       expect(mockPolicy.authorize).toHaveBeenCalledWith(userId, calendarId, MemberRole.OWNER);
+    });
+
+    it('records DELETE audit on calendar deletion', async () => {
+      mockPolicy.authorize.mockResolvedValue({
+        calendarId,
+        userId,
+        role: MemberRole.OWNER,
+      });
+
+      mockPrisma.calendar.delete.mockResolvedValue({
+        id: calendarId,
+        revision: BigInt(50),
+      });
+
+      await service.deleteCalendar(userId, calendarId);
+
+      expect(mockAudit.record).toHaveBeenCalledWith(
+        userId,
+        calendarId,
+        AuditEntityType.CALENDAR,
+        calendarId,
+        AuditAction.DELETE,
+      );
     });
 
     it('rejects ADMIN trying to delete', async () => {

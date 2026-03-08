@@ -1,7 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { MemberRole } from '@prisma/client';
+import { AuditAction, AuditEntityType, MemberRole } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CalendarPolicy } from '../../libs/policies/calendar.policy';
+import { AuditService } from '../audit/audit.service';
 import { CreateCalendarDto, UpdateCalendarDto, CalendarItemDto, ListCalendarsResponseDto } from './calendars.dto';
 import { OkRevisionResponseDto } from '../../common/dto/ok-revision.dto';
 
@@ -10,6 +11,7 @@ export class CalendarsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly policy: CalendarPolicy,
+    private readonly audit: AuditService,
   ) {}
 
   async listMyCalendars(userId: string): Promise<ListCalendarsResponseDto> {
@@ -49,6 +51,15 @@ export class CalendarsService {
       return { calendar, member };
     });
 
+    await this.audit.record(
+      userId,
+      result.calendar.id,
+      AuditEntityType.CALENDAR,
+      result.calendar.id,
+      AuditAction.CREATE,
+      { name: result.calendar.name, color: result.calendar.color },
+    );
+
     return {
       id: result.calendar.id,
       name: result.calendar.name,
@@ -81,6 +92,19 @@ export class CalendarsService {
       throw new NotFoundException('Member not found');
     }
 
+    const diff: Record<string, unknown> = {};
+    if (dto.name !== undefined) diff.name = dto.name;
+    if (dto.color !== undefined) diff.color = dto.color;
+
+    await this.audit.record(
+      userId,
+      calendarId,
+      AuditEntityType.CALENDAR,
+      calendarId,
+      AuditAction.UPDATE,
+      diff,
+    );
+
     return {
       id: calendar.id,
       name: calendar.name,
@@ -99,6 +123,14 @@ export class CalendarsService {
     const calendar = await this.prisma.calendar.delete({
       where: { id: calendarId },
     });
+
+    await this.audit.record(
+      userId,
+      calendarId,
+      AuditEntityType.CALENDAR,
+      calendarId,
+      AuditAction.DELETE,
+    );
 
     return {
       ok: true,
