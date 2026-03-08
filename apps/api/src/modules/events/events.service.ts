@@ -1,7 +1,8 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
-import { MemberRole } from '@prisma/client';
+import { AuditAction, AuditEntityType, MemberRole } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CalendarPolicy } from '../../libs/policies/calendar.policy';
+import { AuditService } from '../audit/audit.service';
 import { OptimisticLockConflictException } from '../../common/errors/conflict.exception';
 import { OkRevisionResponseDto } from '../../common/dto/ok-revision.dto';
 import {
@@ -17,6 +18,7 @@ export class EventsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly policy: CalendarPolicy,
+    private readonly audit: AuditService,
   ) {}
 
   async listEvents(userId: string, q: EventsQueryDto): Promise<ListEventsResponseDto> {
@@ -64,6 +66,15 @@ export class EventsService {
         remindMinutes: dto.remindMinutes ?? null,
       },
     });
+
+    await this.audit.record(
+      userId,
+      dto.calendarId,
+      AuditEntityType.EVENT,
+      event.id,
+      AuditAction.CREATE,
+      { title: dto.title, allDay: dto.allDay ?? false },
+    );
 
     return { ok: true, revision: event.revision.toString() };
   }
@@ -129,6 +140,27 @@ export class EventsService {
       where: { id: eventId },
     });
 
+    const auditDiff: Record<string, unknown> = {};
+    if (fields.title !== undefined) auditDiff.title = fields.title;
+    if (fields.note !== undefined) auditDiff.note = fields.note;
+    if (fields.location !== undefined) auditDiff.location = fields.location;
+    if (fields.timezone !== undefined) auditDiff.timezone = fields.timezone;
+    if (fields.color !== undefined) auditDiff.color = fields.color;
+    if (fields.allDay !== undefined) auditDiff.allDay = fields.allDay;
+    if (fields.startAtUtc !== undefined) auditDiff.startAtUtc = fields.startAtUtc;
+    if (fields.endAtUtc !== undefined) auditDiff.endAtUtc = fields.endAtUtc;
+    if (fields.startDate !== undefined) auditDiff.startDate = fields.startDate;
+    if (fields.endDate !== undefined) auditDiff.endDate = fields.endDate;
+
+    await this.audit.record(
+      userId,
+      existing.calendarId,
+      AuditEntityType.EVENT,
+      eventId,
+      AuditAction.UPDATE,
+      auditDiff,
+    );
+
     return { ok: true, revision: updated.revision.toString() };
   }
 
@@ -147,6 +179,14 @@ export class EventsService {
       where: { id: eventId },
       data: { deletedAt: new Date() },
     });
+
+    await this.audit.record(
+      userId,
+      existing.calendarId,
+      AuditEntityType.EVENT,
+      eventId,
+      AuditAction.DELETE,
+    );
 
     return { ok: true, revision: updated.revision.toString() };
   }

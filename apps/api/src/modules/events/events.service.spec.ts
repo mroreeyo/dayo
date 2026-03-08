@@ -1,9 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
-import { MemberRole } from '@prisma/client';
+import { AuditAction, AuditEntityType, MemberRole } from '@prisma/client';
 import { EventsService } from './events.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CalendarPolicy } from '../../libs/policies/calendar.policy';
+import { AuditService } from '../audit/audit.service';
 import { OptimisticLockConflictException } from '../../common/errors/conflict.exception';
 
 const mockPrisma = {
@@ -21,6 +22,10 @@ const mockPolicy = {
   authorize: jest.fn(),
 };
 
+const mockAudit = {
+  record: jest.fn().mockResolvedValue(undefined),
+};
+
 describe('EventsService', () => {
   let service: EventsService;
 
@@ -32,6 +37,7 @@ describe('EventsService', () => {
         EventsService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: CalendarPolicy, useValue: mockPolicy },
+        { provide: AuditService, useValue: mockAudit },
       ],
     }).compile();
 
@@ -175,6 +181,30 @@ describe('EventsService', () => {
       });
     });
 
+    it('records CREATE audit on event creation', async () => {
+      mockPolicy.authorize.mockResolvedValue({ role: MemberRole.MEMBER });
+      mockPrisma.event.create.mockResolvedValue(timedEvent);
+
+      await service.createEvent(userId, {
+        calendarId,
+        title: 'Meeting',
+        timezone: 'Asia/Seoul',
+        startAtUtc: '2026-02-26T03:00:00Z',
+        endAtUtc: '2026-02-26T04:00:00Z',
+        startDate: undefined as unknown as string,
+        endDate: undefined as unknown as string,
+      });
+
+      expect(mockAudit.record).toHaveBeenCalledWith(
+        userId,
+        calendarId,
+        AuditEntityType.EVENT,
+        eventId,
+        AuditAction.CREATE,
+        { title: 'Meeting', allDay: false },
+      );
+    });
+
     it('creates an all-day event', async () => {
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.MEMBER });
       mockPrisma.event.create.mockResolvedValue(allDayEvent);
@@ -313,6 +343,32 @@ describe('EventsService', () => {
       });
     });
 
+    it('records UPDATE audit on event update', async () => {
+      mockPrisma.event.findFirst.mockResolvedValue(timedEvent);
+      mockPolicy.authorize.mockResolvedValue({ role: MemberRole.MEMBER });
+      mockPrisma.event.updateMany.mockResolvedValue({ count: 1 });
+      mockPrisma.event.findUniqueOrThrow.mockResolvedValue({
+        ...timedEvent,
+        title: 'Updated',
+        version: 2,
+        revision: BigInt(200),
+      });
+
+      await service.updateEvent(userId, eventId, {
+        version: 1,
+        title: 'Updated',
+      });
+
+      expect(mockAudit.record).toHaveBeenCalledWith(
+        userId,
+        calendarId,
+        AuditEntityType.EVENT,
+        eventId,
+        AuditAction.UPDATE,
+        { title: 'Updated' },
+      );
+    });
+
     it('throws 409 on version mismatch', async () => {
       mockPrisma.event.findFirst.mockResolvedValue(timedEvent);
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.MEMBER });
@@ -392,6 +448,26 @@ describe('EventsService', () => {
         where: { id: eventId },
         data: { deletedAt: expect.any(Date) },
       });
+    });
+
+    it('records DELETE audit on event deletion', async () => {
+      mockPrisma.event.findFirst.mockResolvedValue(timedEvent);
+      mockPolicy.authorize.mockResolvedValue({ role: MemberRole.MEMBER });
+      mockPrisma.event.update.mockResolvedValue({
+        ...timedEvent,
+        deletedAt: new Date(),
+        revision: BigInt(300),
+      });
+
+      await service.deleteEvent(userId, eventId);
+
+      expect(mockAudit.record).toHaveBeenCalledWith(
+        userId,
+        calendarId,
+        AuditEntityType.EVENT,
+        eventId,
+        AuditAction.DELETE,
+      );
     });
 
     it('throws 404 for already-deleted event', async () => {
