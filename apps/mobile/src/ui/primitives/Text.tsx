@@ -4,7 +4,7 @@ import { useTheme } from '../../theme/ThemeProvider';
 import { Theme } from '../../theme/theme';
 
 type Variant = 'display' | 'title' | 'titleSm' | 'body' | 'bodySm' | 'caption';
-type TextColor = 'primary' | 'secondary' | 'muted' | 'inverse';
+type TextColor = 'primary' | 'secondary' | 'muted' | 'inverse' | 'link';
 
 export interface ThemedTextProps extends TextProps {
   variant?: Variant;
