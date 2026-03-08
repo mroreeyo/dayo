@@ -41,3 +41,19 @@ output "s3_bucket_id" {
 output "s3_bucket_arn" {
   value = module.s3.bucket_arn
 }
+
+output "alb_dns_name" {
+  value = module.alb.alb_dns_name
+}
+
+output "ecs_cluster_name" {
+  value = module.ecs.cluster_name
+}
+
+output "ecs_api_service_name" {
+  value = module.ecs.api_service_name
+}
+
+output "ecs_worker_service_name" {
+  value = module.ecs.worker_service_name
+}
