@@ -1,0 +1,239 @@
+{
+  "meta": {
+    "name": "Calm Mint",
+    "id": "calm-mint",
+    "version": "1.0.0",
+    "updatedAt": "2026-03-06",
+    "platforms": [
+      "figma",
+      "react-native",
+      "web"
+    ],
+    "notes": "v1은 Light theme만. Dark theme는 v2에서 확장."
+  },
+  "color": {
+    "palette": {
+      "mint": {
+        "50": "#F4FFFC",
+        "100": "#D9F7EF",
+        "200": "#B6EFE0",
+        "300": "#8DE1D1",
+        "400": "#67D2BF",
+        "500": "#5BC8AF",
+        "600": "#3A9F89",
+        "700": "#2C7A69",
+        "800": "#215C51",
+        "900": "#173D36"
+      },
+      "neutral": {
+        "0": "#FFFFFF",
+        "50": "#F9FAFB",
+        "100": "#F3F4F6",
+        "200": "#E5E7EB",
+        "300": "#D1D5DB",
+        "400": "#9CA3AF",
+        "500": "#6B7280",
+        "600": "#4B5563",
+        "700": "#374151",
+        "800": "#1F2937",
+        "900": "#111827"
+      },
+      "red": {
+        "500": "#EF4444",
+        "600": "#DC2626"
+      },
+      "amber": {
+        "500": "#F59E0B",
+        "600": "#D97706"
+      },
+      "blue": {
+        "500": "#3B82F6",
+        "600": "#2563EB"
+      },
+      "purple": {
+        "500": "#8B5CF6",
+        "600": "#7C3AED"
+      },
+      "pink": {
+        "500": "#EC4899",
+        "600": "#DB2777"
+      }
+    },
+    "semantic": {
+      "background": {
+        "app": "#F4FFFC",
+        "surface": "#FFFFFF",
+        "surfaceAlt": "#F9FAFB",
+        "overlay": "rgba(17, 24, 39, 0.45)"
+      },
+      "text": {
+        "primary": "#111827",
+        "secondary": "#4B5563",
+        "muted": "#6B7280",
+        "placeholder": "#9CA3AF",
+        "inverse": "#FFFFFF",
+        "link": "#2563EB"
+      },
+      "border": {
+        "default": "#E5E7EB",
+        "subtle": "#F3F4F6",
+        "focus": "#67D2BF"
+      },
+      "brand": {
+        "primary": "#5BC8AF",
+        "primaryPressed": "#3A9F89",
+        "primarySoft": "#D9F7EF",
+        "onPrimary": "#FFFFFF"
+      },
+      "state": {
+        "success": "#3A9F89",
+        "warning": "#F59E0B",
+        "danger": "#EF4444",
+        "info": "#3B82F6"
+      },
+      "calendar": {
+        "todayBg": "#D9F7EF",
+        "selectedDayRing": "#5BC8AF",
+        "eventDotDefault": "#5BC8AF",
+        "calendarColorOptions": [
+          "#5BC8AF",
+          "#60A5FA",
+          "#A78BFA",
+          "#F472B6",
+          "#FB923C",
+          "#FBBF24",
+          "#34D399",
+          "#94A3B8"
+        ]
+      }
+    }
+  },
+  "typography": {
+    "fontFamily": {
+      "base": {
+        "ios": "System",
+        "android": "Roboto"
+      },
+      "mono": {
+        "ios": "Menlo",
+        "android": "monospace"
+      }
+    },
+    "weight": {
+      "regular": "400",
+      "medium": "500",
+      "semibold": "600",
+      "bold": "700"
+    },
+    "size": {
+      "caption": 12,
+      "bodySm": 14,
+      "body": 16,
+      "titleSm": 18,
+      "title": 20,
+      "display": 24
+    },
+    "lineHeight": {
+      "caption": 16,
+      "bodySm": 20,
+      "body": 22,
+      "titleSm": 24,
+      "title": 28,
+      "display": 32
+    },
+    "letterSpacing": {
+      "default": 0,
+      "tight": -0.2
+    }
+  },
+  "space": {
+    "0": 0,
+    "1": 4,
+    "2": 8,
+    "3": 12,
+    "4": 16,
+    "5": 20,
+    "6": 24,
+    "8": 32,
+    "10": 40,
+    "12": 48
+  },
+  "radius": {
+    "sm": 12,
+    "md": 16,
+    "lg": 20,
+    "xl": 28,
+    "pill": 999
+  },
+  "elevation": {
+    "0": {
+      "ios": {
+        "shadowOpacity": 0,
+        "shadowRadius": 0,
+        "shadowOffset": {
+          "width": 0,
+          "height": 0
+        }
+      },
+      "android": {
+        "elevation": 0
+      }
+    },
+    "1": {
+      "ios": {
+        "shadowColor": "#111827",
+        "shadowOpacity": 0.08,
+        "shadowRadius": 10,
+        "shadowOffset": {
+          "width": 0,
+          "height": 6
+        }
+      },
+      "android": {
+        "elevation": 2
+      }
+    },
+    "2": {
+      "ios": {
+        "shadowColor": "#111827",
+        "shadowOpacity": 0.12,
+        "shadowRadius": 16,
+        "shadowOffset": {
+          "width": 0,
+          "height": 10
+        }
+      },
+      "android": {
+        "elevation": 4
+      }
+    }
+  },
+  "component": {
+    "button": {
+      "height": 48,
+      "radius": 16,
+      "paddingX": 16
+    },
+    "input": {
+      "height": 48,
+      "radius": 16,
+      "paddingX": 14
+    },
+    "card": {
+      "radius": 16,
+      "padding": 14,
+      "gap": 8
+    },
+    "avatar": {
+      "xs": 20,
+      "sm": 24,
+      "md": 32,
+      "lg": 40
+    },
+    "icon": {
+      "sm": 18,
+      "md": 22,
+      "lg": 26
+    }
+  }
+}
