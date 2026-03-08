@@ -1,10 +1,13 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import {
   ApiCreatedResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
+import { Request } from 'express';
+import { GoogleProfile } from '../../common/auth/google.strategy';
 import { AuthService } from './auth.service';
 import {
   RegisterDto,
@@ -37,5 +40,20 @@ export class AuthController {
   @Post('refresh')
   refresh(@Body() dto: RefreshDto): Promise<{ accessToken: string }> {
     return this.auth.refresh(dto.refreshToken);
+  }
+
+  @ApiOperation({ summary: 'Redirect to Google OAuth consent screen' })
+  @UseGuards(AuthGuard('google'))
+  @Get('google')
+  google(): void {
+    return;
+  }
+
+  @ApiOperation({ summary: 'Google OAuth callback' })
+  @ApiOkResponse({ type: AuthResponseDto })
+  @UseGuards(AuthGuard('google'))
+  @Get('google/callback')
+  googleCallback(@Req() req: Request): Promise<AuthResponseDto> {
+    return this.auth.googleLogin(req.user as GoogleProfile);
   }
 }
