@@ -1,9 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
-import { MemberRole } from '@prisma/client';
+import { AuditAction, AuditEntityType, MemberRole } from '@prisma/client';
 import { MembersService } from './members.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CalendarPolicy } from '../../libs/policies/calendar.policy';
+import { AuditService } from '../audit/audit.service';
 
 const mockPrisma = {
   calendarMember: {
@@ -18,6 +19,10 @@ const mockPolicy = {
   authorize: jest.fn(),
 };
 
+const mockAudit = {
+  record: jest.fn().mockResolvedValue(undefined),
+};
+
 describe('MembersService', () => {
   let service: MembersService;
 
@@ -29,6 +34,7 @@ describe('MembersService', () => {
         MembersService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: CalendarPolicy, useValue: mockPolicy },
+        { provide: AuditService, useValue: mockAudit },
       ],
     }).compile();
 
@@ -118,6 +124,31 @@ describe('MembersService', () => {
       expect(mockPolicy.authorize).toHaveBeenCalledWith(actorId, calendarId, MemberRole.ADMIN);
     });
 
+    it('records ROLE_CHANGE audit on role update', async () => {
+      mockPolicy.authorize.mockResolvedValue({ role: MemberRole.OWNER });
+
+      const targetUser = makeUser(memberId, 'member@test.com', 'Member');
+      mockPrisma.calendarMember.findUnique.mockResolvedValue(
+        makeMember(memberId, MemberRole.MEMBER, targetUser),
+      );
+
+      const updatedMember = makeMember(memberId, MemberRole.ADMIN, targetUser);
+      mockPrisma.calendarMember.update.mockResolvedValue(updatedMember);
+
+      await service.updateRole(actorId, calendarId, memberId, {
+        role: MemberRole.ADMIN,
+      });
+
+      expect(mockAudit.record).toHaveBeenCalledWith(
+        actorId,
+        calendarId,
+        AuditEntityType.MEMBER,
+        `member-${memberId}`,
+        AuditAction.ROLE_CHANGE,
+        { targetUserId: memberId, from: MemberRole.MEMBER, to: MemberRole.ADMIN },
+      );
+    });
+
     it('allows ADMIN to change MEMBER role', async () => {
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.ADMIN });
 
@@ -200,12 +231,14 @@ describe('MembersService', () => {
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.ADMIN });
 
       mockPrisma.calendarMember.findUnique.mockResolvedValue({
+        id: `member-${memberId}`,
         calendarId,
         userId: memberId,
         role: MemberRole.MEMBER,
       });
 
       mockPrisma.calendarMember.delete.mockResolvedValue({
+        id: `member-${memberId}`,
         revision: BigInt(200),
       });
 
@@ -214,10 +247,38 @@ describe('MembersService', () => {
       expect(result).toEqual({ ok: true, revision: '200' });
     });
 
+    it('records DELETE audit when admin removes member', async () => {
+      mockPolicy.authorize.mockResolvedValue({ role: MemberRole.ADMIN });
+
+      mockPrisma.calendarMember.findUnique.mockResolvedValue({
+        id: `member-${memberId}`,
+        calendarId,
+        userId: memberId,
+        role: MemberRole.MEMBER,
+      });
+
+      mockPrisma.calendarMember.delete.mockResolvedValue({
+        id: `member-${memberId}`,
+        revision: BigInt(200),
+      });
+
+      await service.removeMember(adminId, calendarId, memberId);
+
+      expect(mockAudit.record).toHaveBeenCalledWith(
+        adminId,
+        calendarId,
+        AuditEntityType.MEMBER,
+        `member-${memberId}`,
+        AuditAction.DELETE,
+        { targetUserId: memberId },
+      );
+    });
+
     it('allows MEMBER to self-leave', async () => {
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.MEMBER });
 
       mockPrisma.calendarMember.delete.mockResolvedValue({
+        id: `member-${memberId}`,
         revision: BigInt(201),
       });
 
@@ -225,6 +286,26 @@ describe('MembersService', () => {
 
       expect(result).toEqual({ ok: true, revision: '201' });
       expect(mockPolicy.authorize).toHaveBeenCalledWith(memberId, calendarId, MemberRole.MEMBER);
+    });
+
+    it('records LEAVE audit on self-leave', async () => {
+      mockPolicy.authorize.mockResolvedValue({ role: MemberRole.MEMBER });
+
+      mockPrisma.calendarMember.delete.mockResolvedValue({
+        id: `member-${memberId}`,
+        revision: BigInt(201),
+      });
+
+      await service.removeMember(memberId, calendarId, memberId);
+
+      expect(mockAudit.record).toHaveBeenCalledWith(
+        memberId,
+        calendarId,
+        AuditEntityType.MEMBER,
+        `member-${memberId}`,
+        AuditAction.LEAVE,
+        { targetUserId: memberId },
+      );
     });
 
     it('prevents OWNER from self-leaving', async () => {

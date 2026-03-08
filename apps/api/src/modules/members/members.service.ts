@@ -1,7 +1,8 @@
 import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
-import { MemberRole } from '@prisma/client';
+import { AuditAction, AuditEntityType, MemberRole } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CalendarPolicy } from '../../libs/policies/calendar.policy';
+import { AuditService } from '../audit/audit.service';
 import {
   ListMembersResponseDto,
   MemberDto,
@@ -20,6 +21,7 @@ export class MembersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly policy: CalendarPolicy,
+    private readonly audit: AuditService,
   ) {}
 
   async listMembers(
@@ -75,11 +77,22 @@ export class MembersService {
       throw new ForbiddenException('Cannot assign OWNER role');
     }
 
+    const previousRole = target.role;
+
     const updated = await this.prisma.calendarMember.update({
       where: { calendarId_userId: { calendarId, userId: targetUserId } },
       include: { user: true },
       data: { role: dto.role },
     });
+
+    await this.audit.record(
+      actorId,
+      calendarId,
+      AuditEntityType.MEMBER,
+      updated.id,
+      AuditAction.ROLE_CHANGE,
+      { targetUserId, from: previousRole, to: dto.role },
+    );
 
     return {
       id: updated.id,
@@ -124,6 +137,15 @@ export class MembersService {
     const deleted = await this.prisma.calendarMember.delete({
       where: { calendarId_userId: { calendarId, userId: targetUserId } },
     });
+
+    await this.audit.record(
+      actorId,
+      calendarId,
+      AuditEntityType.MEMBER,
+      deleted.id,
+      isSelfLeave ? AuditAction.LEAVE : AuditAction.DELETE,
+      { targetUserId },
+    );
 
     return {
       ok: true,
