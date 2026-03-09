@@ -46,7 +46,6 @@ export function EventDetailScreen({ navigation }: Props) {
   const theme = useTheme();
   const s = getStyles(theme);
 
-  // TODO: Replace with real data from route params + query (T32)
   const event: EventDetailData = {
     ...STUB_EVENT,
     calendarColor: theme.colors.calendar.calendarColorOptions[0],
@@ -64,7 +63,6 @@ export function EventDetailScreen({ navigation }: Props) {
           text: '삭제',
           style: 'destructive',
           onPress: () => {
-            // TODO: call delete mutation (T32)
             navigation.goBack();
           },
         },
