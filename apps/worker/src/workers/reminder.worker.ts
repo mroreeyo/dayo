@@ -2,6 +2,10 @@ import { Worker, Job } from 'bullmq';
 import { PrismaClient } from '@prisma/client';
 import { createRedisConnection } from '../lib/redis';
 import { sendPush } from '../lib/push-provider';
+import { logInfo, logWarn, logError } from '../lib/logger';
+import { handleDlq } from '../lib/dlq';
+
+const QUEUE_NAME = 'reminders';
 
 interface ReminderJobData {
   eventId: string;
@@ -16,17 +20,17 @@ export function createReminderWorker(redisUrl: string): Worker<ReminderJobData> 
   const prisma = new PrismaClient();
 
   const worker = new Worker<ReminderJobData>(
-    'reminders',
+    QUEUE_NAME,
     async (job: Job<ReminderJobData>) => {
       const { eventId, userId, title } = job.data;
-      console.log(`[reminder] Processing reminder for event=${eventId} user=${userId}`);
+      logInfo(QUEUE_NAME, job.id, 'processing', `Processing reminder for event=${eventId} user=${userId}`);
 
       const tokens = await prisma.deviceToken.findMany({
         where: { userId },
       });
 
       if (tokens.length === 0) {
-        console.log(`[reminder] No device tokens for user=${userId}`);
+        logWarn(QUEUE_NAME, job.id, 'no_tokens', `No device tokens for user=${userId}`);
         return;
       }
 
@@ -34,7 +38,7 @@ export function createReminderWorker(redisUrl: string): Worker<ReminderJobData> 
         const result = await sendPush(dt.token, dt.platform, title, `Reminder: ${title}`);
 
         if (result.invalidToken) {
-          console.log(`[reminder] Removing invalid token id=${dt.id}`);
+          logWarn(QUEUE_NAME, job.id, 'invalid_token', `Removing invalid token id=${dt.id}`);
           await prisma.deviceToken.delete({ where: { id: dt.id } });
         }
       }
@@ -46,12 +50,18 @@ export function createReminderWorker(redisUrl: string): Worker<ReminderJobData> 
   );
 
   worker.on('failed', (job, err) => {
-    console.error(`[reminder] Job ${job?.id} failed:`, err.message);
+    logError(QUEUE_NAME, job?.id, 'failed', `Job ${job?.id} failed`, err);
+    handleDlq(job, err, QUEUE_NAME);
   });
 
   worker.on('completed', (job) => {
-    console.log(`[reminder] Job ${job.id} completed`);
+    logInfo(QUEUE_NAME, job.id, 'completed', `Job ${job.id} completed`);
   });
 
   return worker;
 }
+
+export const reminderJobOptions = {
+  attempts: 3,
+  backoff: { type: 'exponential' as const, delay: 5000 },
+};
