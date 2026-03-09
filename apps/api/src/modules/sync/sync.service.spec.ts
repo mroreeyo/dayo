@@ -70,10 +70,10 @@ describe('SyncService', () => {
       const result = await service.syncCalendar(userId, calendarId, '0');
 
       expect(result.next).toBe('500');
-      expect(result.calendars.upserts).toEqual([{ id: calendarId, revision: '100' }]);
+      expect(result.calendars.upserts).toEqual([expect.objectContaining({ id: calendarId, revision: '100' })]);
       expect(result.calendars.deletes).toEqual([]);
-      expect(result.members.upserts).toEqual([{ id: 'mem-1', revision: '101' }]);
-      expect(result.invites.upserts).toEqual([{ id: 'inv-1', revision: '200' }]);
+      expect(result.members.upserts).toEqual([expect.objectContaining({ id: 'mem-1', revision: '101' })]);
+      expect(result.invites.upserts).toEqual([expect.objectContaining({ id: 'inv-1', revision: '200' })]);
       expect(result.events.upserts).toHaveLength(2);
       expect(result.events.deletes).toEqual([]);
     });
@@ -95,7 +95,7 @@ describe('SyncService', () => {
 
       expect(result.next).toBe('600');
       expect(result.calendars.upserts).toEqual([]);
-      expect(result.events.upserts).toEqual([{ id: 'evt-3', revision: '550' }]);
+      expect(result.events.upserts).toEqual([expect.objectContaining({ id: 'evt-3', revision: '550' })]);
       expect(result.events.deletes).toEqual([]);
     });
   });
@@ -117,7 +117,7 @@ describe('SyncService', () => {
 
       const result = await service.syncCalendar(userId, calendarId, '600');
 
-      expect(result.events.upserts).toEqual([{ id: 'evt-1', revision: '650' }]);
+      expect(result.events.upserts).toEqual([expect.objectContaining({ id: 'evt-1', revision: '650' })]);
       expect(result.events.deletes).toEqual([
         { id: 'evt-2', revision: '680', deletedAt: '2026-03-01T10:00:00.000Z' },
       ]);

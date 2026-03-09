@@ -93,8 +93,8 @@ describe('SyncService — Integration: Sync Window Cursor', () => {
 
       expect(result.next).toBe('500');
       expect(result.events.upserts).toEqual([
-        { id: 'evt-new', revision: '200' },
-        { id: 'evt-newer', revision: '400' },
+        expect.objectContaining({ id: 'evt-new', revision: '200' }),
+        expect.objectContaining({ id: 'evt-newer', revision: '400' }),
       ]);
     });
 
@@ -109,7 +109,6 @@ describe('SyncService — Integration: Sync Window Cursor', () => {
           calendarId,
           revision: { gt: BigInt(100), lte: BigInt(500) },
         },
-        select: { id: true, revision: true, deletedAt: true },
       });
     });
   });
@@ -152,8 +151,8 @@ describe('SyncService — Integration: Sync Window Cursor', () => {
       const result = await service.syncCalendar(userId, calendarId, '700');
 
       expect(result.events.upserts).toEqual([
-        { id: 'evt-active-1', revision: '800' },
-        { id: 'evt-active-2', revision: '850' },
+        expect.objectContaining({ id: 'evt-active-1', revision: '800' }),
+        expect.objectContaining({ id: 'evt-active-2', revision: '850' }),
       ]);
       expect(result.events.deletes).toEqual([
         { id: 'evt-deleted-1', revision: '900', deletedAt: '2026-03-15T12:00:00.000Z' },

@@ -13,11 +13,6 @@ export class SyncQueryDto {
   since?: string;
 }
 
-export class SyncEntityUpsertDto {
-  @ApiProperty({ format: 'uuid' }) id!: string;
-  @ApiProperty({ example: '35000' }) revision!: string;
-}
-
 export class SyncEntityDeleteDto {
   @ApiProperty({ format: 'uuid' }) id!: string;
   @ApiProperty({ example: '35000' }) revision!: string;
@@ -25,8 +20,15 @@ export class SyncEntityDeleteDto {
 }
 
 export class SyncBucketDto {
-  @ApiProperty({ type: [SyncEntityUpsertDto] }) upserts!: SyncEntityUpsertDto[];
-  @ApiProperty({ type: [SyncEntityDeleteDto] }) deletes!: SyncEntityDeleteDto[];
+  @ApiProperty({
+    description: 'Full entity objects with at least id and revision fields',
+    type: 'array',
+    items: { type: 'object', properties: { id: { type: 'string' }, revision: { type: 'string' } } },
+  })
+  upserts!: Array<{ id: string; revision: string; [key: string]: unknown }>;
+
+  @ApiProperty({ type: [SyncEntityDeleteDto] })
+  deletes!: SyncEntityDeleteDto[];
 }
 
 export class SyncResponseDto {

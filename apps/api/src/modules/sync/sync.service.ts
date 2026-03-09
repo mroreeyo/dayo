@@ -11,6 +11,28 @@ export class SyncService {
     private readonly policy: CalendarPolicy,
   ) {}
 
+  private serializeEntity(
+    entity: { id: string; revision: bigint; [key: string]: unknown },
+  ): { id: string; revision: string; [key: string]: unknown } {
+    const result: { id: string; revision: string; [key: string]: unknown } = {
+      id: entity.id,
+      revision: entity.revision.toString(),
+    };
+    const raw = entity as Record<string, unknown>;
+    for (const key of Object.keys(raw)) {
+      if (key === 'id' || key === 'revision') continue;
+      const val = raw[key];
+      if (typeof val === 'bigint') {
+        result[key] = val.toString();
+      } else if (val instanceof Date) {
+        result[key] = val.toISOString();
+      } else {
+        result[key] = val;
+      }
+    }
+    return result;
+  }
+
   async syncCalendar(
     userId: string,
     calendarId: string,
@@ -33,34 +55,31 @@ export class SyncService {
           id: calendarId,
           revision: { gt: sinceBig, lte: snapshot },
         },
-        select: { id: true, revision: true },
       }),
       this.prisma.calendarMember.findMany({
         where: {
           calendarId,
           revision: { gt: sinceBig, lte: snapshot },
         },
-        select: { id: true, revision: true },
+        include: { user: { select: { id: true, email: true, nickname: true } } },
       }),
       this.prisma.invite.findMany({
         where: {
           calendarId,
           revision: { gt: sinceBig, lte: snapshot },
         },
-        select: { id: true, revision: true },
       }),
       this.prisma.event.findMany({
         where: {
           calendarId,
           revision: { gt: sinceBig, lte: snapshot },
         },
-        select: { id: true, revision: true, deletedAt: true },
       }),
     ]);
 
     const eventUpserts = events
       .filter((e) => e.deletedAt === null)
-      .map((e) => ({ id: e.id, revision: e.revision.toString() }));
+      .map((e) => this.serializeEntity(e));
 
     const eventDeletes = events
       .filter((e) => e.deletedAt !== null)
@@ -73,15 +92,15 @@ export class SyncService {
     return {
       next: snapshot.toString(),
       calendars: {
-        upserts: calendars.map((c) => ({ id: c.id, revision: c.revision.toString() })),
+        upserts: calendars.map((c) => this.serializeEntity(c)),
         deletes: [],
       },
       members: {
-        upserts: members.map((m) => ({ id: m.id, revision: m.revision.toString() })),
+        upserts: members.map((m) => this.serializeEntity(m)),
         deletes: [],
       },
       invites: {
-        upserts: invites.map((i) => ({ id: i.id, revision: i.revision.toString() })),
+        upserts: invites.map((i) => this.serializeEntity(i)),
         deletes: [],
       },
       events: {
