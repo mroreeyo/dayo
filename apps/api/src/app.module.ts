@@ -7,6 +7,8 @@ import { CalendarsModule } from './modules/calendars/calendars.module';
 import { MembersModule } from './modules/members/members.module';
 import { InvitesModule } from './modules/invites/invites.module';
 import { EventsModule } from './modules/events/events.module';
+import { SyncModule } from './modules/sync/sync.module';
+import { RealtimeModule } from './modules/realtime/realtime.module';
 
 @Module({
   imports: [
@@ -14,10 +16,12 @@ import { EventsModule } from './modules/events/events.module';
     PrismaModule,
     AuthModule,
     AuditModule,
+    RealtimeModule,
     CalendarsModule,
     MembersModule,
     InvitesModule,
     EventsModule,
+    SyncModule,
   ],
 })
 export class AppModule {}
