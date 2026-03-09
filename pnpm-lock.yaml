@@ -235,6 +235,9 @@ importers:
       '@babel/core':
         specifier: ^7.20.0
         version: 7.29.0
+      '@types/luxon':
+        specifier: ^3.7.1
+        version: 3.7.1
       '@types/react':
         specifier: ~18.2.45
         version: 18.2.79
@@ -1966,6 +1969,9 @@ packages:
 
   '@types/jsonwebtoken@9.0.5':
     resolution: {integrity: sha512-VRLSGzik+Unrup6BsouBeHsf4d1hOEgYWTm/7Nmw1sXoN1+tRly/Gy/po3yeahnP4jfnQWWAhQAqcNfH7ngOkA==}
+
+  '@types/luxon@3.7.1':
+    resolution: {integrity: sha512-H3iskjFIAn5SlJU7OuxUmTEpebK6TKB8rxZShDslBMZJ5u9S//KM1sbdAisiSrqwLQncVjnpi2OK2J51h+4lsg==}
 
   '@types/methods@1.1.4':
     resolution: {integrity: sha512-ymXWVrDiCxTBE3+RIrrP533E70eA+9qu7zdWoHuOmGujkYtzf4HQF96b8nwHLqhuf4ykX61IGRIB38CC6/sImQ==}
@@ -9203,6 +9209,8 @@ snapshots:
   '@types/jsonwebtoken@9.0.5':
     dependencies:
       '@types/node': 20.19.37
+
+  '@types/luxon@3.7.1': {}
 
   '@types/methods@1.1.4': {}
 
