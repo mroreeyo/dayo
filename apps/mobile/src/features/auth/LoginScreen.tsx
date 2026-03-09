@@ -13,6 +13,7 @@ import { useAuthStore } from '../../store/auth.store';
 import { LoginDto } from '../../api/types';
 import { useTheme } from '../../theme/ThemeProvider';
 import { AuthStackParamList } from '../../navigation/types';
+import { registerForPushNotifications } from '../../utils/notifications';
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
@@ -34,6 +35,7 @@ export function LoginScreen() {
     try {
       const response = await authApi.login(data);
       setTokens(response.tokens.accessToken, response.tokens.refreshToken, response.user.id);
+      registerForPushNotifications().catch(() => {});
     } catch (error: unknown) {
       let message = 'Something went wrong';
       if (axios.isAxiosError(error) && error.response?.data?.message) {
