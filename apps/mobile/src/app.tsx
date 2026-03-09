@@ -8,6 +8,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { queryClient } from './api/query-client';
 import { useAuthStore } from './store/auth.store';
 import { connectSocket, disconnectSocket, getSocket } from './realtime/socket';
+import { setupOfflineQueueFlush } from './utils/offline-flush';
 
 function useSocketLifecycle() {
   const accessToken = useAuthStore((s) => s.accessToken);
@@ -39,6 +40,11 @@ function useSocketLifecycle() {
 
 export default function App() {
   useSocketLifecycle();
+
+  useEffect(() => {
+    const unsubscribe = setupOfflineQueueFlush();
+    return () => unsubscribe();
+  }, []);
 
   return (
     <SafeAreaProvider>
