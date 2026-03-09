@@ -9,6 +9,8 @@ import {
   UpdateMemberRoleDto,
 } from './members.dto';
 import { OkRevisionResponseDto } from '../../common/dto/ok-revision.dto';
+import { RealtimeService } from '../realtime/realtime.service';
+import { RT_EVENTS } from '../../libs/realtime/events';
 
 const ROLE_LEVEL: Record<MemberRole, number> = {
   OWNER: 30,
@@ -22,6 +24,7 @@ export class MembersService {
     private readonly prisma: PrismaService,
     private readonly policy: CalendarPolicy,
     private readonly audit: AuditService,
+    private readonly realtime: RealtimeService,
   ) {}
 
   async listMembers(
@@ -94,6 +97,12 @@ export class MembersService {
       { targetUserId, from: previousRole, to: dto.role },
     );
 
+    this.realtime.broadcast(calendarId, RT_EVENTS.MEMBER_ROLE_CHANGED, {
+      calendarId,
+      revision: updated.revision.toString(),
+      at: new Date().toISOString(),
+    });
+
     return {
       id: updated.id,
       userId: updated.userId,
@@ -146,6 +155,18 @@ export class MembersService {
       isSelfLeave ? AuditAction.LEAVE : AuditAction.DELETE,
       { targetUserId },
     );
+
+    this.realtime.broadcast(calendarId, RT_EVENTS.MEMBER_LEFT, {
+      calendarId,
+      revision: deleted.revision.toString(),
+      at: new Date().toISOString(),
+    });
+
+    this.realtime.broadcastToUser(targetUserId, RT_EVENTS.CALENDAR_REMOVED, {
+      calendarId,
+      revision: deleted.revision.toString(),
+      at: new Date().toISOString(),
+    });
 
     return {
       ok: true,

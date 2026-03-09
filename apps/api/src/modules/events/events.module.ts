@@ -1,13 +1,15 @@
 import { Module } from '@nestjs/common';
 import { CalendarsModule } from '../calendars/calendars.module';
 import { AuditModule } from '../audit/audit.module';
+import { RealtimeModule } from '../realtime/realtime.module';
 import { EventsController } from './events.controller';
 import { EventsService } from './events.service';
+import { RecurrenceService } from './recurrence.service';
 
 @Module({
-  imports: [CalendarsModule, AuditModule],
+  imports: [CalendarsModule, AuditModule, RealtimeModule],
   controllers: [EventsController],
-  providers: [EventsService],
-  exports: [EventsService],
+  providers: [EventsService, RecurrenceService],
+  exports: [EventsService, RecurrenceService],
 })
 export class EventsModule {}

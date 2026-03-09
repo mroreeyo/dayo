@@ -5,6 +5,7 @@ import { CalendarsService } from './calendars.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CalendarPolicy } from '../../libs/policies/calendar.policy';
 import { AuditService } from '../audit/audit.service';
+import { RealtimeService } from '../realtime/realtime.service';
 
 const mockPrisma = {
   calendarMember: {
@@ -27,6 +28,12 @@ const mockAudit = {
   record: jest.fn().mockResolvedValue(undefined),
 };
 
+const mockRealtime = {
+  broadcast: jest.fn(),
+  broadcastToUser: jest.fn(),
+  bindServer: jest.fn(),
+};
+
 describe('CalendarsService', () => {
   let service: CalendarsService;
 
@@ -39,6 +46,7 @@ describe('CalendarsService', () => {
         { provide: PrismaService, useValue: mockPrisma },
         { provide: CalendarPolicy, useValue: mockPolicy },
         { provide: AuditService, useValue: mockAudit },
+        { provide: RealtimeService, useValue: mockRealtime },
       ],
     }).compile();
 

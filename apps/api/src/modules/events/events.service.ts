@@ -12,6 +12,8 @@ import {
   EventDto,
   ListEventsResponseDto,
 } from './events.dto';
+import { RealtimeService } from '../realtime/realtime.service';
+import { RT_EVENTS } from '../../libs/realtime/events';
 
 @Injectable()
 export class EventsService {
@@ -19,6 +21,7 @@ export class EventsService {
     private readonly prisma: PrismaService,
     private readonly policy: CalendarPolicy,
     private readonly audit: AuditService,
+    private readonly realtime: RealtimeService,
   ) {}
 
   async listEvents(userId: string, q: EventsQueryDto): Promise<ListEventsResponseDto> {
@@ -75,6 +78,13 @@ export class EventsService {
       AuditAction.CREATE,
       { title: dto.title, allDay: dto.allDay ?? false },
     );
+
+    this.realtime.broadcast(dto.calendarId, RT_EVENTS.EVENT_CREATED, {
+      calendarId: dto.calendarId,
+      revision: event.revision.toString(),
+      at: new Date().toISOString(),
+      entityId: event.id,
+    });
 
     return { ok: true, revision: event.revision.toString() };
   }
@@ -161,6 +171,13 @@ export class EventsService {
       auditDiff,
     );
 
+    this.realtime.broadcast(existing.calendarId, RT_EVENTS.EVENT_UPDATED, {
+      calendarId: existing.calendarId,
+      revision: updated.revision.toString(),
+      at: new Date().toISOString(),
+      entityId: eventId,
+    });
+
     return { ok: true, revision: updated.revision.toString() };
   }
 
@@ -187,6 +204,13 @@ export class EventsService {
       eventId,
       AuditAction.DELETE,
     );
+
+    this.realtime.broadcast(existing.calendarId, RT_EVENTS.EVENT_DELETED, {
+      calendarId: existing.calendarId,
+      revision: updated.revision.toString(),
+      at: new Date().toISOString(),
+      entityId: eventId,
+    });
 
     return { ok: true, revision: updated.revision.toString() };
   }

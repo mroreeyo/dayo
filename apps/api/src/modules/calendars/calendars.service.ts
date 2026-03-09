@@ -5,6 +5,8 @@ import { CalendarPolicy } from '../../libs/policies/calendar.policy';
 import { AuditService } from '../audit/audit.service';
 import { CreateCalendarDto, UpdateCalendarDto, CalendarItemDto, ListCalendarsResponseDto } from './calendars.dto';
 import { OkRevisionResponseDto } from '../../common/dto/ok-revision.dto';
+import { RealtimeService } from '../realtime/realtime.service';
+import { RT_EVENTS } from '../../libs/realtime/events';
 
 @Injectable()
 export class CalendarsService {
@@ -12,6 +14,7 @@ export class CalendarsService {
     private readonly prisma: PrismaService,
     private readonly policy: CalendarPolicy,
     private readonly audit: AuditService,
+    private readonly realtime: RealtimeService,
   ) {}
 
   async listMyCalendars(userId: string): Promise<ListCalendarsResponseDto> {
@@ -60,6 +63,12 @@ export class CalendarsService {
       { name: result.calendar.name, color: result.calendar.color },
     );
 
+    this.realtime.broadcast(result.calendar.id, RT_EVENTS.CALENDAR_UPDATED, {
+      calendarId: result.calendar.id,
+      revision: result.calendar.revision.toString(),
+      at: new Date().toISOString(),
+    });
+
     return {
       id: result.calendar.id,
       name: result.calendar.name,
@@ -105,6 +114,12 @@ export class CalendarsService {
       diff,
     );
 
+    this.realtime.broadcast(calendarId, RT_EVENTS.CALENDAR_UPDATED, {
+      calendarId,
+      revision: calendar.revision.toString(),
+      at: new Date().toISOString(),
+    });
+
     return {
       id: calendar.id,
       name: calendar.name,
@@ -131,6 +146,12 @@ export class CalendarsService {
       calendarId,
       AuditAction.DELETE,
     );
+
+    this.realtime.broadcast(calendarId, RT_EVENTS.CALENDAR_DELETED, {
+      calendarId,
+      revision: calendar.revision.toString(),
+      at: new Date().toISOString(),
+    });
 
     return {
       ok: true,

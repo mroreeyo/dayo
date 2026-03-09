@@ -15,6 +15,8 @@ import {
   InviteDto,
   JoinByCodeResponseDto,
 } from './invites.dto';
+import { RealtimeService } from '../realtime/realtime.service';
+import { RT_EVENTS } from '../../libs/realtime/events';
 
 const INVITE_CODE_BYTES = 24;
 
@@ -48,6 +50,7 @@ export class InvitesService {
     private readonly prisma: PrismaService,
     private readonly policy: CalendarPolicy,
     private readonly audit: AuditService,
+    private readonly realtime: RealtimeService,
   ) {}
 
   async createInvite(
@@ -133,6 +136,12 @@ export class InvitesService {
       AuditAction.JOIN,
       { inviteCode: code },
     );
+
+    this.realtime.broadcast(member.calendarId, RT_EVENTS.MEMBER_JOINED, {
+      calendarId: member.calendarId,
+      revision: member.calendar.revision.toString(),
+      at: new Date().toISOString(),
+    });
 
     return {
       calendarId: member.calendarId,
