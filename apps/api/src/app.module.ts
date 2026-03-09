@@ -9,6 +9,7 @@ import { InvitesModule } from './modules/invites/invites.module';
 import { EventsModule } from './modules/events/events.module';
 import { SyncModule } from './modules/sync/sync.module';
 import { RealtimeModule } from './modules/realtime/realtime.module';
+import { QueuesModule } from './modules/queues/queues.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { RealtimeModule } from './modules/realtime/realtime.module';
     InvitesModule,
     EventsModule,
     SyncModule,
+    QueuesModule,
   ],
 })
 export class AppModule {}
