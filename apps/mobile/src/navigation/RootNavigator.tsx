@@ -4,6 +4,9 @@ import { useAuthStore } from '../store/auth.store';
 import { LoginScreen } from '../features/auth/LoginScreen';
 import { RegisterScreen } from '../features/auth/RegisterScreen';
 import { HomeScreen } from '../features/calendars/HomeScreen';
+import { EventDetailScreen } from '../features/events/EventDetailScreen';
+import { CalendarManageScreen } from '../features/calendars/CalendarManageScreen';
+import { MemberListScreen } from '../features/members/MemberListScreen';
 import { AuthStackParamList, MainStackParamList } from './types';
 
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
