@@ -11,9 +11,12 @@ import {
   EventsQueryDto,
   EventDto,
   ListEventsResponseDto,
+  OccurrenceDto,
 } from './events.dto';
 import { RealtimeService } from '../realtime/realtime.service';
 import { RT_EVENTS } from '../../libs/realtime/events';
+import { RecurrenceService } from './recurrence.service';
+import { QueuesService } from '../queues/queues.service';
 
 @Injectable()
 export class EventsService {
@@ -22,6 +25,8 @@ export class EventsService {
     private readonly policy: CalendarPolicy,
     private readonly audit: AuditService,
     private readonly realtime: RealtimeService,
+    private readonly recurrence: RecurrenceService,
+    private readonly queues: QueuesService,
   ) {}
 
   async listEvents(userId: string, q: EventsQueryDto): Promise<ListEventsResponseDto> {
@@ -44,7 +49,50 @@ export class EventsService {
 
     const items: EventDto[] = events.map((e) => this.toEventDto(e));
 
-    return { items };
+    if (!q.includeOccurrences) {
+      return { items };
+    }
+
+    const masters = await this.prisma.event.findMany({
+      where: {
+        calendarId: q.calendarId,
+        deletedAt: null,
+        recurrenceRule: { isNot: null },
+      },
+      include: {
+        recurrenceRule: true,
+        exceptions: true,
+      },
+    });
+
+    const expandInput = masters
+      .filter((m) => m.recurrenceRule !== null)
+      .map((m) => ({
+        event: m,
+        rule: m.recurrenceRule!,
+        exceptions: m.exceptions,
+      }));
+
+    const rawOccurrences = this.recurrence.expandMany(expandInput, { from, to });
+
+    const occurrences: OccurrenceDto[] = rawOccurrences.map((o) => ({
+      recurringEventId: o.recurringEventId,
+      occurrenceKey: o.occurrenceKey,
+      calendarId: o.calendarId,
+      allDay: o.allDay,
+      title: o.title,
+      note: o.note ?? null,
+      location: o.location ?? null,
+      color: o.color ?? null,
+      timezone: o.timezone,
+      startAtUtc: o.startAtUtc,
+      endAtUtc: o.endAtUtc,
+      startDate: o.startDate,
+      endDate: o.endDate,
+      overridden: o.overridden,
+    }));
+
+    return { items, occurrences };
   }
 
   async createEvent(userId: string, dto: CreateEventDto): Promise<OkRevisionResponseDto> {
@@ -85,6 +133,17 @@ export class EventsService {
       at: new Date().toISOString(),
       entityId: event.id,
     });
+
+    if (event.remindMinutes != null && event.startAtUtc) {
+      const fireAt = new Date(event.startAtUtc.getTime() - event.remindMinutes * 60_000);
+      await this.queues.enqueueReminder({
+        eventId: event.id,
+        userId,
+        calendarId: dto.calendarId,
+        title: event.title,
+        fireAt: fireAt.toISOString(),
+      });
+    }
 
     return { ok: true, revision: event.revision.toString() };
   }
@@ -178,6 +237,18 @@ export class EventsService {
       entityId: eventId,
     });
 
+    await this.queues.cancelReminder(eventId);
+    if (updated.remindMinutes != null && updated.startAtUtc) {
+      const fireAt = new Date(updated.startAtUtc.getTime() - updated.remindMinutes * 60_000);
+      await this.queues.enqueueReminder({
+        eventId,
+        userId,
+        calendarId: existing.calendarId,
+        title: updated.title,
+        fireAt: fireAt.toISOString(),
+      });
+    }
+
     return { ok: true, revision: updated.revision.toString() };
   }
 
@@ -211,6 +282,8 @@ export class EventsService {
       at: new Date().toISOString(),
       entityId: eventId,
     });
+
+    await this.queues.cancelReminder(eventId);
 
     return { ok: true, revision: updated.revision.toString() };
   }

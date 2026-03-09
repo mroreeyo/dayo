@@ -7,6 +7,8 @@ import { CalendarPolicy } from '../../libs/policies/calendar.policy';
 import { AuditService } from '../audit/audit.service';
 import { OptimisticLockConflictException } from '../../common/errors/conflict.exception';
 import { RealtimeService } from '../realtime/realtime.service';
+import { RecurrenceService } from './recurrence.service';
+import { QueuesService } from '../queues/queues.service';
 
 const mockPrisma = {
   event: {
@@ -33,6 +35,16 @@ const mockRealtime = {
   bindServer: jest.fn(),
 };
 
+const mockRecurrence = {
+  expandOne: jest.fn(),
+  expandMany: jest.fn(),
+};
+
+const mockQueues = {
+  enqueueReminder: jest.fn().mockResolvedValue(undefined),
+  cancelReminder: jest.fn().mockResolvedValue(undefined),
+};
+
 describe('EventsService', () => {
   let service: EventsService;
 
@@ -46,6 +58,8 @@ describe('EventsService', () => {
         { provide: CalendarPolicy, useValue: mockPolicy },
         { provide: AuditService, useValue: mockAudit },
         { provide: RealtimeService, useValue: mockRealtime },
+        { provide: RecurrenceService, useValue: mockRecurrence },
+        { provide: QueuesService, useValue: mockQueues },
       ],
     }).compile();
 
@@ -156,6 +170,102 @@ describe('EventsService', () => {
       expect(result.items[0].endDate).toBe('2026-02-27');
       expect(result.items[0].startAtUtc).toBeNull();
       expect(result.items[0].endAtUtc).toBeNull();
+    });
+
+    it('returns occurrences when includeOccurrences is true', async () => {
+      mockPolicy.authorize.mockResolvedValue({ role: MemberRole.MEMBER });
+
+      const masterEvent = {
+        ...timedEvent,
+        id: 'evt-master',
+        recurrenceRule: {
+          id: 'rule-1',
+          eventId: 'evt-master',
+          rrule: 'FREQ=DAILY;COUNT=3',
+          dtstartUtc: new Date('2026-02-26T03:00:00Z'),
+          dtstartDate: null,
+          untilUtc: null,
+          count: 3,
+        },
+        exceptions: [],
+      };
+
+      const sampleOccurrences = [
+        {
+          recurringEventId: 'evt-master',
+          occurrenceKey: '2026-02-26T03:00:00.000Z',
+          calendarId,
+          allDay: false,
+          title: 'Meeting',
+          note: null,
+          location: null,
+          color: null,
+          timezone: 'Asia/Seoul',
+          startAtUtc: '2026-02-26T03:00:00.000Z',
+          endAtUtc: '2026-02-26T04:00:00.000Z',
+          overridden: false,
+        },
+        {
+          recurringEventId: 'evt-master',
+          occurrenceKey: '2026-02-27T03:00:00.000Z',
+          calendarId,
+          allDay: false,
+          title: 'Meeting',
+          note: null,
+          location: null,
+          color: null,
+          timezone: 'Asia/Seoul',
+          startAtUtc: '2026-02-27T03:00:00.000Z',
+          endAtUtc: '2026-02-27T04:00:00.000Z',
+          overridden: false,
+        },
+      ];
+
+      mockPrisma.event.findMany
+        .mockResolvedValueOnce([timedEvent])       // regular events
+        .mockResolvedValueOnce([masterEvent]);      // recurring masters
+      mockRecurrence.expandMany.mockReturnValue(sampleOccurrences);
+
+      const result = await service.listEvents(userId, {
+        calendarId,
+        from: '2026-02-01T00:00:00Z',
+        to: '2026-03-01T00:00:00Z',
+        includeOccurrences: true,
+      });
+
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0].id).toBe(eventId);
+      expect(result.occurrences).toHaveLength(2);
+      expect(result.occurrences![0].recurringEventId).toBe('evt-master');
+      expect(result.occurrences![1].startAtUtc).toBe('2026-02-27T03:00:00.000Z');
+      expect(mockRecurrence.expandMany).toHaveBeenCalledWith(
+        [
+          {
+            event: masterEvent,
+            rule: masterEvent.recurrenceRule,
+            exceptions: masterEvent.exceptions,
+          },
+        ],
+        {
+          from: new Date('2026-02-01T00:00:00Z'),
+          to: new Date('2026-03-01T00:00:00Z'),
+        },
+      );
+    });
+
+    it('does not return occurrences when includeOccurrences is not set', async () => {
+      mockPolicy.authorize.mockResolvedValue({ role: MemberRole.MEMBER });
+      mockPrisma.event.findMany.mockResolvedValue([timedEvent]);
+
+      const result = await service.listEvents(userId, {
+        calendarId,
+        from: '2026-02-01T00:00:00Z',
+        to: '2026-03-01T00:00:00Z',
+      });
+
+      expect(result.items).toHaveLength(1);
+      expect(result.occurrences).toBeUndefined();
+      expect(mockRecurrence.expandMany).not.toHaveBeenCalled();
     });
   });
 
