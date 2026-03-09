@@ -432,6 +432,35 @@ describe('RecurrenceService', () => {
     });
   });
 
+  describe('duration preservation', () => {
+    it('preserves 90-minute duration for each timed occurrence', () => {
+      const master = {
+        ...timedMaster,
+        startAtUtc: new Date('2026-03-01T09:00:00Z'),
+        endAtUtc: new Date('2026-03-01T10:30:00Z'), // 90 minutes
+      };
+      const rule = makeRule('FREQ=DAILY', new Date('2026-03-01T09:00:00Z'));
+      const range = {
+        from: new Date('2026-03-01T00:00:00Z'),
+        to: new Date('2026-03-03T23:59:59Z'),
+      };
+
+      const results = service.expandOne(master, rule, noExceptions, range);
+
+      expect(results).toHaveLength(3);
+      for (const occ of results) {
+        const start = new Date(occ.startAtUtc!).getTime();
+        const end = new Date(occ.endAtUtc!).getTime();
+        const durationMinutes = (end - start) / 60_000;
+        expect(durationMinutes).toBe(90);
+      }
+      expect(results[0].startAtUtc).toBe('2026-03-01T09:00:00.000Z');
+      expect(results[0].endAtUtc).toBe('2026-03-01T10:30:00.000Z');
+      expect(results[2].startAtUtc).toBe('2026-03-03T09:00:00.000Z');
+      expect(results[2].endAtUtc).toBe('2026-03-03T10:30:00.000Z');
+    });
+  });
+
   describe('soft-deleted exceptions ignored', () => {
     it('does not apply exception with deletedAt set', () => {
       const rule = makeRule('FREQ=DAILY', new Date('2026-03-01T09:00:00Z'));
