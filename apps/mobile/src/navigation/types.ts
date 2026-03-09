@@ -5,6 +5,8 @@ export type AuthStackParamList = {
 
 export type MainStackParamList = {
   Home: undefined;
+  EventDetail: { eventId: string; calendarId: string };
+  MemberList: { calendarId: string };
 };
 
 export type RootStackParamList = {
