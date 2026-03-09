@@ -10,6 +10,7 @@ import { EventsModule } from './modules/events/events.module';
 import { SyncModule } from './modules/sync/sync.module';
 import { RealtimeModule } from './modules/realtime/realtime.module';
 import { QueuesModule } from './modules/queues/queues.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { QueuesModule } from './modules/queues/queues.module';
     EventsModule,
     SyncModule,
     QueuesModule,
+    NotificationsModule,
   ],
 })
 export class AppModule {}
