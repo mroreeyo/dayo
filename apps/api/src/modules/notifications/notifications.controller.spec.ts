@@ -6,6 +6,7 @@ import { RequestUser } from '../../common/auth/types';
 const mockService = {
   registerToken: jest.fn(),
   unregisterToken: jest.fn(),
+  getTokensForUser: jest.fn(),
 };
 
 describe('NotificationsController', () => {
@@ -25,14 +26,28 @@ describe('NotificationsController', () => {
 
   describe('register', () => {
     it('delegates to service with user id and dto', async () => {
-      const dto = { token: 'fcm-token', platform: 'android' as const };
-      const expected = { id: 'tok-1', userId: 'user-1', token: 'fcm-token', platform: 'android', createdAt: '2026-01-01T00:00:00.000Z' };
+      const dto = { token: 'ExponentPushToken[xxx]', platform: 'ios' as const };
+      const expected = { id: 'tok-1', userId: 'user-1', token: 'ExponentPushToken[xxx]', platform: 'ios', createdAt: '2026-01-01T00:00:00.000Z' };
       mockService.registerToken.mockResolvedValue(expected);
 
       const result = await controller.register(user, dto);
 
       expect(result).toEqual(expected);
       expect(mockService.registerToken).toHaveBeenCalledWith(user.id, dto);
+    });
+  });
+
+  describe('list', () => {
+    it('returns all tokens for the current user', async () => {
+      const tokens = [
+        { id: 'tok-1', userId: 'user-1', token: 'ExponentPushToken[xxx]', platform: 'ios', createdAt: '2026-01-01T00:00:00.000Z' },
+      ];
+      mockService.getTokensForUser.mockResolvedValue(tokens);
+
+      const result = await controller.list(user);
+
+      expect(result).toEqual(tokens);
+      expect(mockService.getTokensForUser).toHaveBeenCalledWith(user.id);
     });
   });
 
