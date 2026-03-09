@@ -25,6 +25,9 @@ function MainNavigator() {
   return (
     <MainStack.Navigator screenOptions={{ headerShown: false }}>
       <MainStack.Screen name="Home" component={HomeScreen} />
+      <MainStack.Screen name="EventDetail" component={EventDetailScreen} />
+      <MainStack.Screen name="CalendarManage" component={CalendarManageScreen} />
+      <MainStack.Screen name="MemberList" component={MemberListScreen} />
     </MainStack.Navigator>
   );
 }

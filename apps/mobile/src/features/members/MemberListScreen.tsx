@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, FlatList, StyleSheet, Alert, TextStyle } from 'react-native';
 import { useTheme } from '../../theme/ThemeProvider';
 import { Theme } from '../../theme/theme';
@@ -33,7 +33,7 @@ const STUB_MEMBERS: MemberItem[] = [
   { id: '3', name: '박서준', role: 'MEMBER' },
 ];
 
-export function MemberListScreen({ route }: Props) {
+export function MemberListScreen(_props: Props) {
   const theme = useTheme();
   const s = getStyles(theme);
 

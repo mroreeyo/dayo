@@ -7,6 +7,7 @@ import { Button } from '../../ui/components/Button';
 import { Avatar } from '../../ui/components/Avatar';
 import { Card } from '../../ui/components/Card';
 import { Icon } from '../../ui/primitives/Icon';
+import { EventEditSheet } from './EventEditSheet';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { MainStackParamList } from '../../navigation/types';
 
@@ -159,6 +160,12 @@ export function EventDetailScreen({ navigation }: Props) {
           />
         </View>
       </ScrollView>
+
+      <EventEditSheet
+        visible={editSheetVisible}
+        onClose={() => setEditSheetVisible(false)}
+        onSave={() => setEditSheetVisible(false)}
+      />
     </View>
   );
 }
