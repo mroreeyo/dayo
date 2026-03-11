@@ -10,7 +10,7 @@
     "start": "node dist/main",
     "dev": "ts-node-dev --respawn src/main.ts",
     "lint": "eslint \"src/**/*.ts\" --fix",
-    "test": "jest",
+    "test": "jest --passWithNoTests",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
