@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useRouter } from 'expo-router';
 import axios from 'axios';
 import { Box } from '../../ui/primitives/Box';
 import { Text } from '../../ui/primitives/Text';
@@ -12,13 +11,10 @@ import { authApi } from '../../api/auth.api';
 import { useAuthStore } from '../../store/auth.store';
 import { LoginDto } from '../../api/types';
 import { useTheme } from '../../theme/ThemeProvider';
-import { AuthStackParamList } from '../../navigation/types';
 import { registerForPushNotifications } from '../../utils/notifications';
 
-type LoginScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
-
 export function LoginScreen() {
-  const navigation = useNavigation<LoginScreenNavigationProp>();
+  const router = useRouter();
   const setTokens = useAuthStore((state) => state.setTokens);
   const theme = useTheme();
   const [loading, setLoading] = useState(false);
@@ -117,7 +113,7 @@ export function LoginScreen() {
               variant="bodySm"
               color="link"
               style={{ fontWeight: '600' }}
-              onPress={() => navigation.navigate('Register')}
+              onPress={() => router.push('/(auth)/register')}
             >
               Sign Up
             </Text>
