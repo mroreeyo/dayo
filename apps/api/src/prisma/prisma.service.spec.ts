@@ -1,7 +1,7 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { PrismaService } from './prisma.service';
+import { Test, TestingModule } from "@nestjs/testing";
+import { PrismaService } from "./prisma.service";
 
-describe('PrismaService', () => {
+describe("PrismaService", () => {
   let service: PrismaService;
 
   beforeAll(async () => {
@@ -12,11 +12,11 @@ describe('PrismaService', () => {
     service = module.get<PrismaService>(PrismaService);
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(service).toBeDefined();
   });
 
-  describe('connectivity', () => {
+  describe("connectivity", () => {
     beforeAll(async () => {
       await service.onModuleInit();
     });
@@ -25,7 +25,7 @@ describe('PrismaService', () => {
       await service.onModuleDestroy();
     });
 
-    it('should connect to the database', async () => {
+    it("should connect to the database", async () => {
       const result = await service.$queryRaw<
         Array<{ now: Date }>
       >`SELECT NOW() as now`;
@@ -33,19 +33,28 @@ describe('PrismaService', () => {
       expect(result[0].now).toBeInstanceOf(Date);
     });
 
-    it('should have all expected tables accessible', async () => {
-      const [users, calendars, members, invites, events, rules, exceptions, logs, tokens] =
-        await Promise.all([
-          service.user.findMany({ take: 1 }),
-          service.calendar.findMany({ take: 1 }),
-          service.calendarMember.findMany({ take: 1 }),
-          service.invite.findMany({ take: 1 }),
-          service.event.findMany({ take: 1 }),
-          service.eventRecurrenceRule.findMany({ take: 1 }),
-          service.eventException.findMany({ take: 1 }),
-          service.auditLog.findMany({ take: 1 }),
-          service.deviceToken.findMany({ take: 1 }),
-        ]);
+    it("should have all expected tables accessible", async () => {
+      const [
+        users,
+        calendars,
+        members,
+        invites,
+        events,
+        rules,
+        exceptions,
+        logs,
+        tokens,
+      ] = await Promise.all([
+        service.user.findMany({ take: 1 }),
+        service.calendar.findMany({ take: 1 }),
+        service.calendarMember.findMany({ take: 1 }),
+        service.invite.findMany({ take: 1 }),
+        service.event.findMany({ take: 1 }),
+        service.eventRecurrenceRule.findMany({ take: 1 }),
+        service.eventException.findMany({ take: 1 }),
+        service.auditLog.findMany({ take: 1 }),
+        service.deviceToken.findMany({ take: 1 }),
+      ]);
 
       expect(users).toBeDefined();
       expect(calendars).toBeDefined();
@@ -58,18 +67,18 @@ describe('PrismaService', () => {
       expect(tokens).toBeDefined();
     });
 
-    it('should create and read a user (round-trip)', async () => {
+    it("should create and read a user (round-trip)", async () => {
       const email = `test-${Date.now()}@example.com`;
       const user = await service.user.create({
         data: {
           email,
-          nickname: 'Test User',
+          nickname: "Test User",
         },
       });
 
       expect(user.id).toBeDefined();
       expect(user.email).toBe(email);
-      expect(user.nickname).toBe('Test User');
+      expect(user.nickname).toBe("Test User");
       expect(user.createdAt).toBeInstanceOf(Date);
 
       await service.user.delete({ where: { id: user.id } });

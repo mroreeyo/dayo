@@ -1,5 +1,5 @@
-import { Module } from '@nestjs/common';
-import { QueuesService } from './queues.service';
+import { Module } from "@nestjs/common";
+import { QueuesService } from "./queues.service";
 
 @Module({
   providers: [QueuesService],

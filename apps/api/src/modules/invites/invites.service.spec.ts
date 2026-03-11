@@ -1,11 +1,15 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ConflictException, GoneException, NotFoundException } from '@nestjs/common';
-import { AuditAction, AuditEntityType, MemberRole } from '@prisma/client';
-import { InvitesService } from './invites.service';
-import { PrismaService } from '../../prisma/prisma.service';
-import { CalendarPolicy } from '../../libs/policies/calendar.policy';
-import { AuditService } from '../audit/audit.service';
-import { RealtimeService } from '../realtime/realtime.service';
+import { Test, TestingModule } from "@nestjs/testing";
+import {
+  ConflictException,
+  GoneException,
+  NotFoundException,
+} from "@nestjs/common";
+import { AuditAction, AuditEntityType, MemberRole } from "@prisma/client";
+import { InvitesService } from "./invites.service";
+import { PrismaService } from "../../prisma/prisma.service";
+import { CalendarPolicy } from "../../libs/policies/calendar.policy";
+import { AuditService } from "../audit/audit.service";
+import { RealtimeService } from "../realtime/realtime.service";
 
 const mockPrisma = {
   invite: {
@@ -34,7 +38,7 @@ const mockRealtime = {
   bindServer: jest.fn(),
 };
 
-describe('InvitesService', () => {
+describe("InvitesService", () => {
   let service: InvitesService;
 
   beforeEach(async () => {
@@ -53,12 +57,12 @@ describe('InvitesService', () => {
     service = module.get<InvitesService>(InvitesService);
   });
 
-  const userId = 'user-1';
-  const calendarId = 'cal-1';
-  const inviteId = 'invite-1';
+  const userId = "user-1";
+  const calendarId = "cal-1";
+  const inviteId = "invite-1";
 
-  describe('createInvite', () => {
-    it('creates invite with high-entropy code when user is ADMIN+', async () => {
+  describe("createInvite", () => {
+    it("creates invite with high-entropy code when user is ADMIN+", async () => {
       mockPolicy.authorize.mockResolvedValue({
         calendarId,
         userId,
@@ -68,7 +72,7 @@ describe('InvitesService', () => {
       mockPrisma.invite.create.mockResolvedValue({
         id: inviteId,
         calendarId,
-        code: 'abc123def456ghi789jkl012mno345pq',
+        code: "abc123def456ghi789jkl012mno345pq",
         expiresAt: null,
         maxUses: null,
         useCount: 0,
@@ -82,22 +86,26 @@ describe('InvitesService', () => {
       expect(result.invite.expiresAt).toBeNull();
       expect(result.invite.maxUses).toBeNull();
       expect(result.invite.useCount).toBe(0);
-      expect(result.invite.revision).toBe('100');
-      expect(mockPolicy.authorize).toHaveBeenCalledWith(userId, calendarId, MemberRole.ADMIN);
+      expect(result.invite.revision).toBe("100");
+      expect(mockPolicy.authorize).toHaveBeenCalledWith(
+        userId,
+        calendarId,
+        MemberRole.ADMIN,
+      );
     });
 
-    it('creates invite with expiry and maxUses', async () => {
+    it("creates invite with expiry and maxUses", async () => {
       mockPolicy.authorize.mockResolvedValue({
         calendarId,
         userId,
         role: MemberRole.OWNER,
       });
 
-      const expiresAt = new Date('2026-04-01T00:00:00Z');
+      const expiresAt = new Date("2026-04-01T00:00:00Z");
       mockPrisma.invite.create.mockResolvedValue({
         id: inviteId,
         calendarId,
-        code: 'xyz789',
+        code: "xyz789",
         expiresAt,
         maxUses: 5,
         useCount: 0,
@@ -105,7 +113,7 @@ describe('InvitesService', () => {
       });
 
       const result = await service.createInvite(userId, calendarId, {
-        expiresAt: '2026-04-01T00:00:00Z',
+        expiresAt: "2026-04-01T00:00:00Z",
         maxUses: 5,
       });
 
@@ -113,7 +121,7 @@ describe('InvitesService', () => {
       expect(result.invite.maxUses).toBe(5);
     });
 
-    it('records CREATE audit on invite creation', async () => {
+    it("records CREATE audit on invite creation", async () => {
       mockPolicy.authorize.mockResolvedValue({
         calendarId,
         userId,
@@ -123,7 +131,7 @@ describe('InvitesService', () => {
       mockPrisma.invite.create.mockResolvedValue({
         id: inviteId,
         calendarId,
-        code: 'abc123def456ghi789jkl012mno345pq',
+        code: "abc123def456ghi789jkl012mno345pq",
         expiresAt: null,
         maxUses: null,
         useCount: 0,
@@ -142,142 +150,152 @@ describe('InvitesService', () => {
       );
     });
 
-    it('generates code with at least 32 characters', async () => {
+    it("generates code with at least 32 characters", async () => {
       mockPolicy.authorize.mockResolvedValue({
         calendarId,
         userId,
         role: MemberRole.ADMIN,
       });
 
-      let capturedCode = '';
-      mockPrisma.invite.create.mockImplementation(async (args: { data: { code: string } }) => {
-        capturedCode = args.data.code;
-        return {
-          id: inviteId,
-          calendarId,
-          code: capturedCode,
-          expiresAt: null,
-          maxUses: null,
-          useCount: 0,
-          revision: BigInt(102),
-        };
-      });
+      let capturedCode = "";
+      mockPrisma.invite.create.mockImplementation(
+        async (args: { data: { code: string } }) => {
+          capturedCode = args.data.code;
+          return {
+            id: inviteId,
+            calendarId,
+            code: capturedCode,
+            expiresAt: null,
+            maxUses: null,
+            useCount: 0,
+            revision: BigInt(102),
+          };
+        },
+      );
 
       await service.createInvite(userId, calendarId, {});
 
       expect(capturedCode.length).toBeGreaterThanOrEqual(32);
     });
 
-    it('rejects MEMBER trying to create invite', async () => {
+    it("rejects MEMBER trying to create invite", async () => {
       mockPolicy.authorize.mockRejectedValue(
-        new Error('Requires ADMIN role or higher'),
+        new Error("Requires ADMIN role or higher"),
       );
 
       await expect(
         service.createInvite(userId, calendarId, {}),
-      ).rejects.toThrow('Requires ADMIN role or higher');
+      ).rejects.toThrow("Requires ADMIN role or higher");
     });
   });
 
-  describe('joinByCode', () => {
+  describe("joinByCode", () => {
     const validInvite = {
       id: inviteId,
       calendarId,
-      code: 'valid-code',
+      code: "valid-code",
       expiresAt: null,
       maxUses: null,
       useCount: 0,
       revision: BigInt(200),
     };
 
-    it('joins user to calendar as MEMBER', async () => {
+    it("joins user to calendar as MEMBER", async () => {
       mockPrisma.invite.findUnique.mockResolvedValue(validInvite);
       mockPrisma.calendarMember.findUnique.mockResolvedValue(null);
 
       const memberResult = {
-        id: 'member-1',
+        id: "member-1",
         calendarId,
         userId,
         role: MemberRole.MEMBER,
         calendar: { id: calendarId, revision: BigInt(201) },
       };
 
-      mockPrisma.$transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
-        return fn({
-          invite: { update: jest.fn().mockResolvedValue({}) },
-          calendarMember: { create: jest.fn().mockResolvedValue(memberResult) },
-        });
-      });
+      mockPrisma.$transaction.mockImplementation(
+        async (fn: (tx: unknown) => Promise<unknown>) => {
+          return fn({
+            invite: { update: jest.fn().mockResolvedValue({}) },
+            calendarMember: {
+              create: jest.fn().mockResolvedValue(memberResult),
+            },
+          });
+        },
+      );
 
-      const result = await service.joinByCode(userId, 'valid-code');
+      const result = await service.joinByCode(userId, "valid-code");
 
       expect(result.calendarId).toBe(calendarId);
-      expect(result.revision).toBe('201');
+      expect(result.revision).toBe("201");
     });
 
-    it('records JOIN audit on successful join', async () => {
+    it("records JOIN audit on successful join", async () => {
       mockPrisma.invite.findUnique.mockResolvedValue(validInvite);
       mockPrisma.calendarMember.findUnique.mockResolvedValue(null);
 
       const memberResult = {
-        id: 'member-1',
+        id: "member-1",
         calendarId,
         userId,
         role: MemberRole.MEMBER,
         calendar: { id: calendarId, revision: BigInt(201) },
       };
 
-      mockPrisma.$transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
-        return fn({
-          invite: { update: jest.fn().mockResolvedValue({}) },
-          calendarMember: { create: jest.fn().mockResolvedValue(memberResult) },
-        });
-      });
+      mockPrisma.$transaction.mockImplementation(
+        async (fn: (tx: unknown) => Promise<unknown>) => {
+          return fn({
+            invite: { update: jest.fn().mockResolvedValue({}) },
+            calendarMember: {
+              create: jest.fn().mockResolvedValue(memberResult),
+            },
+          });
+        },
+      );
 
-      await service.joinByCode(userId, 'valid-code');
+      await service.joinByCode(userId, "valid-code");
 
       expect(mockAudit.record).toHaveBeenCalledWith(
         userId,
         calendarId,
         AuditEntityType.MEMBER,
-        'member-1',
+        "member-1",
         AuditAction.JOIN,
-        { inviteCode: 'valid-code' },
+        { inviteCode: "valid-code" },
       );
     });
 
-    it('throws NotFoundException for invalid code', async () => {
+    it("throws NotFoundException for invalid code", async () => {
       mockPrisma.invite.findUnique.mockResolvedValue(null);
 
-      await expect(
-        service.joinByCode(userId, 'bad-code'),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.joinByCode(userId, "bad-code")).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
-    it('throws GoneException for expired invite', async () => {
+    it("throws GoneException for expired invite", async () => {
       mockPrisma.invite.findUnique.mockResolvedValue({
         ...validInvite,
-        expiresAt: new Date('2020-01-01T00:00:00Z'),
+        expiresAt: new Date("2020-01-01T00:00:00Z"),
       });
 
-      await expect(
-        service.joinByCode(userId, 'valid-code'),
-      ).rejects.toThrow(GoneException);
+      await expect(service.joinByCode(userId, "valid-code")).rejects.toThrow(
+        GoneException,
+      );
     });
 
-    it('throws GoneException when max uses exceeded', async () => {
+    it("throws GoneException when max uses exceeded", async () => {
       mockPrisma.invite.findUnique.mockResolvedValue({
         ...validInvite,
         maxUses: 3,
         useCount: 3,
       });
 
-      await expect(
-        service.joinByCode(userId, 'valid-code'),
-      ).rejects.toThrow(GoneException);
+      await expect(service.joinByCode(userId, "valid-code")).rejects.toThrow(
+        GoneException,
+      );
     });
 
-    it('throws ConflictException when already a member', async () => {
+    it("throws ConflictException when already a member", async () => {
       mockPrisma.invite.findUnique.mockResolvedValue(validInvite);
       mockPrisma.calendarMember.findUnique.mockResolvedValue({
         calendarId,
@@ -285,12 +303,12 @@ describe('InvitesService', () => {
         role: MemberRole.MEMBER,
       });
 
-      await expect(
-        service.joinByCode(userId, 'valid-code'),
-      ).rejects.toThrow(ConflictException);
+      await expect(service.joinByCode(userId, "valid-code")).rejects.toThrow(
+        ConflictException,
+      );
     });
 
-    it('increments useCount on successful join', async () => {
+    it("increments useCount on successful join", async () => {
       mockPrisma.invite.findUnique.mockResolvedValue(validInvite);
       mockPrisma.calendarMember.findUnique.mockResolvedValue(null);
 
@@ -302,14 +320,16 @@ describe('InvitesService', () => {
         calendar: { id: calendarId, revision: BigInt(202) },
       });
 
-      mockPrisma.$transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
-        return fn({
-          invite: { update: mockUpdate },
-          calendarMember: { create: mockCreate },
-        });
-      });
+      mockPrisma.$transaction.mockImplementation(
+        async (fn: (tx: unknown) => Promise<unknown>) => {
+          return fn({
+            invite: { update: mockUpdate },
+            calendarMember: { create: mockCreate },
+          });
+        },
+      );
 
-      await service.joinByCode(userId, 'valid-code');
+      await service.joinByCode(userId, "valid-code");
 
       expect(mockUpdate).toHaveBeenCalledWith({
         where: { id: inviteId },

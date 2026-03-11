@@ -1,14 +1,18 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
-import { AuditAction, AuditEntityType, MemberRole } from '@prisma/client';
-import { EventsService } from './events.service';
-import { PrismaService } from '../../prisma/prisma.service';
-import { CalendarPolicy } from '../../libs/policies/calendar.policy';
-import { AuditService } from '../audit/audit.service';
-import { OptimisticLockConflictException } from '../../common/errors/conflict.exception';
-import { RealtimeService } from '../realtime/realtime.service';
-import { RecurrenceService } from './recurrence.service';
-import { QueuesService } from '../queues/queues.service';
+import { Test, TestingModule } from "@nestjs/testing";
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from "@nestjs/common";
+import { AuditAction, AuditEntityType, MemberRole } from "@prisma/client";
+import { EventsService } from "./events.service";
+import { PrismaService } from "../../prisma/prisma.service";
+import { CalendarPolicy } from "../../libs/policies/calendar.policy";
+import { AuditService } from "../audit/audit.service";
+import { OptimisticLockConflictException } from "../../common/errors/conflict.exception";
+import { RealtimeService } from "../realtime/realtime.service";
+import { RecurrenceService } from "./recurrence.service";
+import { QueuesService } from "../queues/queues.service";
 
 const mockPrisma = {
   event: {
@@ -45,7 +49,7 @@ const mockQueues = {
   cancelReminder: jest.fn().mockResolvedValue(undefined),
 };
 
-describe('EventsService', () => {
+describe("EventsService", () => {
   let service: EventsService;
 
   beforeEach(async () => {
@@ -66,21 +70,21 @@ describe('EventsService', () => {
     service = module.get<EventsService>(EventsService);
   });
 
-  const userId = 'user-1';
-  const calendarId = 'cal-1';
-  const eventId = 'evt-1';
+  const userId = "user-1";
+  const calendarId = "cal-1";
+  const eventId = "evt-1";
 
   const timedEvent = {
     id: eventId,
     calendarId,
     creatorId: userId,
-    title: 'Meeting',
+    title: "Meeting",
     note: null,
     location: null,
-    timezone: 'Asia/Seoul',
+    timezone: "Asia/Seoul",
     allDay: false,
-    startAtUtc: new Date('2026-02-26T03:00:00Z'),
-    endAtUtc: new Date('2026-02-26T04:00:00Z'),
+    startAtUtc: new Date("2026-02-26T03:00:00Z"),
+    endAtUtc: new Date("2026-02-26T04:00:00Z"),
     startDate: null,
     endDate: null,
     color: null,
@@ -91,98 +95,102 @@ describe('EventsService', () => {
   };
 
   const allDayEvent = {
-    id: 'evt-2',
+    id: "evt-2",
     calendarId,
     creatorId: userId,
-    title: 'Holiday',
+    title: "Holiday",
     note: null,
     location: null,
-    timezone: 'Asia/Seoul',
+    timezone: "Asia/Seoul",
     allDay: true,
     startAtUtc: null,
     endAtUtc: null,
-    startDate: new Date('2026-02-26'),
-    endDate: new Date('2026-02-27'),
-    color: '#FF0000',
+    startDate: new Date("2026-02-26"),
+    endDate: new Date("2026-02-27"),
+    color: "#FF0000",
     remindMinutes: null,
     version: 1,
     revision: BigInt(101),
     deletedAt: null,
   };
 
-  describe('listEvents', () => {
-    it('returns events within range for a member', async () => {
+  describe("listEvents", () => {
+    it("returns events within range for a member", async () => {
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.MEMBER });
       mockPrisma.event.findMany.mockResolvedValue([timedEvent]);
 
       const result = await service.listEvents(userId, {
         calendarId,
-        from: '2026-02-01T00:00:00Z',
-        to: '2026-03-01T00:00:00Z',
+        from: "2026-02-01T00:00:00Z",
+        to: "2026-03-01T00:00:00Z",
       });
 
       expect(result.items).toHaveLength(1);
       expect(result.items[0].id).toBe(eventId);
-      expect(result.items[0].startAtUtc).toBe('2026-02-26T03:00:00.000Z');
-      expect(result.items[0].revision).toBe('100');
-      expect(mockPolicy.authorize).toHaveBeenCalledWith(userId, calendarId, MemberRole.MEMBER);
+      expect(result.items[0].startAtUtc).toBe("2026-02-26T03:00:00.000Z");
+      expect(result.items[0].revision).toBe("100");
+      expect(mockPolicy.authorize).toHaveBeenCalledWith(
+        userId,
+        calendarId,
+        MemberRole.MEMBER,
+      );
     });
 
-    it('returns empty list when no events match', async () => {
+    it("returns empty list when no events match", async () => {
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.MEMBER });
       mockPrisma.event.findMany.mockResolvedValue([]);
 
       const result = await service.listEvents(userId, {
         calendarId,
-        from: '2026-01-01T00:00:00Z',
-        to: '2026-01-02T00:00:00Z',
+        from: "2026-01-01T00:00:00Z",
+        to: "2026-01-02T00:00:00Z",
       });
 
       expect(result.items).toEqual([]);
     });
 
-    it('rejects non-member', async () => {
+    it("rejects non-member", async () => {
       mockPolicy.authorize.mockRejectedValue(
-        new ForbiddenException('Not a member of this calendar'),
+        new ForbiddenException("Not a member of this calendar"),
       );
 
       await expect(
         service.listEvents(userId, {
           calendarId,
-          from: '2026-02-01T00:00:00Z',
-          to: '2026-03-01T00:00:00Z',
+          from: "2026-02-01T00:00:00Z",
+          to: "2026-03-01T00:00:00Z",
         }),
       ).rejects.toThrow(ForbiddenException);
     });
 
-    it('maps all-day event dates as YYYY-MM-DD strings', async () => {
+    it("maps all-day event dates as YYYY-MM-DD strings", async () => {
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.MEMBER });
       mockPrisma.event.findMany.mockResolvedValue([allDayEvent]);
 
       const result = await service.listEvents(userId, {
         calendarId,
-        from: '2026-02-01T00:00:00Z',
-        to: '2026-03-01T00:00:00Z',
+        from: "2026-02-01T00:00:00Z",
+        to: "2026-03-01T00:00:00Z",
       });
 
       expect(result.items[0].allDay).toBe(true);
-      expect(result.items[0].startDate).toBe('2026-02-26');
-      expect(result.items[0].endDate).toBe('2026-02-27');
+      expect(result.items[0].startDate).toBe("2026-02-26");
+      expect(result.items[0].endDate).toBe("2026-02-27");
       expect(result.items[0].startAtUtc).toBeNull();
       expect(result.items[0].endAtUtc).toBeNull();
     });
 
-    it('returns occurrences when includeOccurrences is true', async () => {
+    it("returns occurrences when includeOccurrences is true", async () => {
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.MEMBER });
 
       const masterEvent = {
         ...timedEvent,
-        id: 'evt-master',
+        id: "evt-master",
         recurrenceRule: {
-          id: 'rule-1',
-          eventId: 'evt-master',
-          rrule: 'FREQ=DAILY;COUNT=3',
-          dtstartUtc: new Date('2026-02-26T03:00:00Z'),
+          id: "rule-1",
+          eventId: "evt-master",
+          rrule: "FREQ=DAILY;COUNT=3",
+          dtstartUtc: new Date("2026-02-26T03:00:00Z"),
           dtstartDate: null,
           untilUtc: null,
           count: 3,
@@ -192,52 +200,54 @@ describe('EventsService', () => {
 
       const sampleOccurrences = [
         {
-          recurringEventId: 'evt-master',
-          occurrenceKey: '2026-02-26T03:00:00.000Z',
+          recurringEventId: "evt-master",
+          occurrenceKey: "2026-02-26T03:00:00.000Z",
           calendarId,
           allDay: false,
-          title: 'Meeting',
+          title: "Meeting",
           note: null,
           location: null,
           color: null,
-          timezone: 'Asia/Seoul',
-          startAtUtc: '2026-02-26T03:00:00.000Z',
-          endAtUtc: '2026-02-26T04:00:00.000Z',
+          timezone: "Asia/Seoul",
+          startAtUtc: "2026-02-26T03:00:00.000Z",
+          endAtUtc: "2026-02-26T04:00:00.000Z",
           overridden: false,
         },
         {
-          recurringEventId: 'evt-master',
-          occurrenceKey: '2026-02-27T03:00:00.000Z',
+          recurringEventId: "evt-master",
+          occurrenceKey: "2026-02-27T03:00:00.000Z",
           calendarId,
           allDay: false,
-          title: 'Meeting',
+          title: "Meeting",
           note: null,
           location: null,
           color: null,
-          timezone: 'Asia/Seoul',
-          startAtUtc: '2026-02-27T03:00:00.000Z',
-          endAtUtc: '2026-02-27T04:00:00.000Z',
+          timezone: "Asia/Seoul",
+          startAtUtc: "2026-02-27T03:00:00.000Z",
+          endAtUtc: "2026-02-27T04:00:00.000Z",
           overridden: false,
         },
       ];
 
       mockPrisma.event.findMany
-        .mockResolvedValueOnce([timedEvent])       // regular events
-        .mockResolvedValueOnce([masterEvent]);      // recurring masters
+        .mockResolvedValueOnce([timedEvent]) // regular events
+        .mockResolvedValueOnce([masterEvent]); // recurring masters
       mockRecurrence.expandMany.mockReturnValue(sampleOccurrences);
 
       const result = await service.listEvents(userId, {
         calendarId,
-        from: '2026-02-01T00:00:00Z',
-        to: '2026-03-01T00:00:00Z',
+        from: "2026-02-01T00:00:00Z",
+        to: "2026-03-01T00:00:00Z",
         includeOccurrences: true,
       });
 
       expect(result.items).toHaveLength(1);
       expect(result.items[0].id).toBe(eventId);
       expect(result.occurrences).toHaveLength(2);
-      expect(result.occurrences![0].recurringEventId).toBe('evt-master');
-      expect(result.occurrences![1].startAtUtc).toBe('2026-02-27T03:00:00.000Z');
+      expect(result.occurrences![0].recurringEventId).toBe("evt-master");
+      expect(result.occurrences![1].startAtUtc).toBe(
+        "2026-02-27T03:00:00.000Z",
+      );
       expect(mockRecurrence.expandMany).toHaveBeenCalledWith(
         [
           {
@@ -247,20 +257,20 @@ describe('EventsService', () => {
           },
         ],
         {
-          from: new Date('2026-02-01T00:00:00Z'),
-          to: new Date('2026-03-01T00:00:00Z'),
+          from: new Date("2026-02-01T00:00:00Z"),
+          to: new Date("2026-03-01T00:00:00Z"),
         },
       );
     });
 
-    it('does not return occurrences when includeOccurrences is not set', async () => {
+    it("does not return occurrences when includeOccurrences is not set", async () => {
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.MEMBER });
       mockPrisma.event.findMany.mockResolvedValue([timedEvent]);
 
       const result = await service.listEvents(userId, {
         calendarId,
-        from: '2026-02-01T00:00:00Z',
-        to: '2026-03-01T00:00:00Z',
+        from: "2026-02-01T00:00:00Z",
+        to: "2026-03-01T00:00:00Z",
       });
 
       expect(result.items).toHaveLength(1);
@@ -269,46 +279,46 @@ describe('EventsService', () => {
     });
   });
 
-  describe('createEvent', () => {
-    it('creates a timed event', async () => {
+  describe("createEvent", () => {
+    it("creates a timed event", async () => {
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.MEMBER });
       mockPrisma.event.create.mockResolvedValue(timedEvent);
 
       const result = await service.createEvent(userId, {
         calendarId,
-        title: 'Meeting',
-        timezone: 'Asia/Seoul',
-        startAtUtc: '2026-02-26T03:00:00Z',
-        endAtUtc: '2026-02-26T04:00:00Z',
+        title: "Meeting",
+        timezone: "Asia/Seoul",
+        startAtUtc: "2026-02-26T03:00:00Z",
+        endAtUtc: "2026-02-26T04:00:00Z",
         startDate: undefined as unknown as string,
         endDate: undefined as unknown as string,
       });
 
-      expect(result).toEqual({ ok: true, revision: '100' });
+      expect(result).toEqual({ ok: true, revision: "100" });
       expect(mockPrisma.event.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           calendarId,
           creatorId: userId,
-          title: 'Meeting',
+          title: "Meeting",
           allDay: false,
-          startAtUtc: new Date('2026-02-26T03:00:00Z'),
-          endAtUtc: new Date('2026-02-26T04:00:00Z'),
+          startAtUtc: new Date("2026-02-26T03:00:00Z"),
+          endAtUtc: new Date("2026-02-26T04:00:00Z"),
           startDate: null,
           endDate: null,
         }),
       });
     });
 
-    it('records CREATE audit on event creation', async () => {
+    it("records CREATE audit on event creation", async () => {
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.MEMBER });
       mockPrisma.event.create.mockResolvedValue(timedEvent);
 
       await service.createEvent(userId, {
         calendarId,
-        title: 'Meeting',
-        timezone: 'Asia/Seoul',
-        startAtUtc: '2026-02-26T03:00:00Z',
-        endAtUtc: '2026-02-26T04:00:00Z',
+        title: "Meeting",
+        timezone: "Asia/Seoul",
+        startAtUtc: "2026-02-26T03:00:00Z",
+        endAtUtc: "2026-02-26T04:00:00Z",
         startDate: undefined as unknown as string,
         endDate: undefined as unknown as string,
       });
@@ -319,26 +329,26 @@ describe('EventsService', () => {
         AuditEntityType.EVENT,
         eventId,
         AuditAction.CREATE,
-        { title: 'Meeting', allDay: false },
+        { title: "Meeting", allDay: false },
       );
     });
 
-    it('creates an all-day event', async () => {
+    it("creates an all-day event", async () => {
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.MEMBER });
       mockPrisma.event.create.mockResolvedValue(allDayEvent);
 
       const result = await service.createEvent(userId, {
         calendarId,
-        title: 'Holiday',
-        timezone: 'Asia/Seoul',
+        title: "Holiday",
+        timezone: "Asia/Seoul",
         allDay: true,
-        startDate: '2026-02-26',
-        endDate: '2026-02-27',
+        startDate: "2026-02-26",
+        endDate: "2026-02-27",
         startAtUtc: undefined as unknown as string,
         endAtUtc: undefined as unknown as string,
       });
 
-      expect(result).toEqual({ ok: true, revision: '101' });
+      expect(result).toEqual({ ok: true, revision: "101" });
       expect(mockPrisma.event.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           allDay: true,
@@ -348,85 +358,85 @@ describe('EventsService', () => {
       });
     });
 
-    it('rejects timed event with endAtUtc <= startAtUtc', async () => {
+    it("rejects timed event with endAtUtc <= startAtUtc", async () => {
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.MEMBER });
 
       await expect(
         service.createEvent(userId, {
           calendarId,
-          title: 'Bad',
-          timezone: 'UTC',
-          startAtUtc: '2026-02-26T04:00:00Z',
-          endAtUtc: '2026-02-26T03:00:00Z',
+          title: "Bad",
+          timezone: "UTC",
+          startAtUtc: "2026-02-26T04:00:00Z",
+          endAtUtc: "2026-02-26T03:00:00Z",
           startDate: undefined as unknown as string,
           endDate: undefined as unknown as string,
         }),
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('rejects all-day event with endDate <= startDate', async () => {
+    it("rejects all-day event with endDate <= startDate", async () => {
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.MEMBER });
 
       await expect(
         service.createEvent(userId, {
           calendarId,
-          title: 'Bad',
-          timezone: 'UTC',
+          title: "Bad",
+          timezone: "UTC",
           allDay: true,
-          startDate: '2026-02-27',
-          endDate: '2026-02-26',
+          startDate: "2026-02-27",
+          endDate: "2026-02-26",
           startAtUtc: undefined as unknown as string,
           endAtUtc: undefined as unknown as string,
         }),
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('rejects timed event with startDate/endDate set', async () => {
+    it("rejects timed event with startDate/endDate set", async () => {
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.MEMBER });
 
       await expect(
         service.createEvent(userId, {
           calendarId,
-          title: 'Bad',
-          timezone: 'UTC',
+          title: "Bad",
+          timezone: "UTC",
           allDay: false,
-          startAtUtc: '2026-02-26T03:00:00Z',
-          endAtUtc: '2026-02-26T04:00:00Z',
-          startDate: '2026-02-26',
-          endDate: '2026-02-27',
+          startAtUtc: "2026-02-26T03:00:00Z",
+          endAtUtc: "2026-02-26T04:00:00Z",
+          startDate: "2026-02-26",
+          endDate: "2026-02-27",
         }),
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('rejects all-day event with startAtUtc/endAtUtc set', async () => {
+    it("rejects all-day event with startAtUtc/endAtUtc set", async () => {
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.MEMBER });
 
       await expect(
         service.createEvent(userId, {
           calendarId,
-          title: 'Bad',
-          timezone: 'UTC',
+          title: "Bad",
+          timezone: "UTC",
           allDay: true,
-          startAtUtc: '2026-02-26T03:00:00Z',
-          endAtUtc: '2026-02-26T04:00:00Z',
-          startDate: '2026-02-26',
-          endDate: '2026-02-27',
+          startAtUtc: "2026-02-26T03:00:00Z",
+          endAtUtc: "2026-02-26T04:00:00Z",
+          startDate: "2026-02-26",
+          endDate: "2026-02-27",
         }),
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('rejects non-member', async () => {
+    it("rejects non-member", async () => {
       mockPolicy.authorize.mockRejectedValue(
-        new ForbiddenException('Not a member of this calendar'),
+        new ForbiddenException("Not a member of this calendar"),
       );
 
       await expect(
         service.createEvent(userId, {
           calendarId,
-          title: 'Meeting',
-          timezone: 'UTC',
-          startAtUtc: '2026-02-26T03:00:00Z',
-          endAtUtc: '2026-02-26T04:00:00Z',
+          title: "Meeting",
+          timezone: "UTC",
+          startAtUtc: "2026-02-26T03:00:00Z",
+          endAtUtc: "2026-02-26T04:00:00Z",
           startDate: undefined as unknown as string,
           endDate: undefined as unknown as string,
         }),
@@ -434,47 +444,47 @@ describe('EventsService', () => {
     });
   });
 
-  describe('updateEvent', () => {
-    it('updates event with matching version', async () => {
+  describe("updateEvent", () => {
+    it("updates event with matching version", async () => {
       mockPrisma.event.findFirst.mockResolvedValue(timedEvent);
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.MEMBER });
       mockPrisma.event.updateMany.mockResolvedValue({ count: 1 });
       mockPrisma.event.findUniqueOrThrow.mockResolvedValue({
         ...timedEvent,
-        title: 'Updated',
+        title: "Updated",
         version: 2,
         revision: BigInt(200),
       });
 
       const result = await service.updateEvent(userId, eventId, {
         version: 1,
-        title: 'Updated',
+        title: "Updated",
       });
 
-      expect(result).toEqual({ ok: true, revision: '200' });
+      expect(result).toEqual({ ok: true, revision: "200" });
       expect(mockPrisma.event.updateMany).toHaveBeenCalledWith({
         where: { id: eventId, version: 1, deletedAt: null },
         data: expect.objectContaining({
-          title: 'Updated',
+          title: "Updated",
           version: { increment: 1 },
         }),
       });
     });
 
-    it('records UPDATE audit on event update', async () => {
+    it("records UPDATE audit on event update", async () => {
       mockPrisma.event.findFirst.mockResolvedValue(timedEvent);
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.MEMBER });
       mockPrisma.event.updateMany.mockResolvedValue({ count: 1 });
       mockPrisma.event.findUniqueOrThrow.mockResolvedValue({
         ...timedEvent,
-        title: 'Updated',
+        title: "Updated",
         version: 2,
         revision: BigInt(200),
       });
 
       await service.updateEvent(userId, eventId, {
         version: 1,
-        title: 'Updated',
+        title: "Updated",
       });
 
       expect(mockAudit.record).toHaveBeenCalledWith(
@@ -483,74 +493,77 @@ describe('EventsService', () => {
         AuditEntityType.EVENT,
         eventId,
         AuditAction.UPDATE,
-        { title: 'Updated' },
+        { title: "Updated" },
       );
     });
 
-    it('throws 409 on version mismatch', async () => {
+    it("throws 409 on version mismatch", async () => {
       mockPrisma.event.findFirst.mockResolvedValue(timedEvent);
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.MEMBER });
       mockPrisma.event.updateMany.mockResolvedValue({ count: 0 });
 
       await expect(
-        service.updateEvent(userId, eventId, { version: 99, title: 'Stale' }),
+        service.updateEvent(userId, eventId, { version: 99, title: "Stale" }),
       ).rejects.toThrow(OptimisticLockConflictException);
     });
 
-    it('throws 404 for deleted event', async () => {
+    it("throws 404 for deleted event", async () => {
       mockPrisma.event.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.updateEvent(userId, eventId, { version: 1, title: 'Gone' }),
+        service.updateEvent(userId, eventId, { version: 1, title: "Gone" }),
       ).rejects.toThrow(NotFoundException);
     });
 
-    it('throws 404 for non-existent event', async () => {
+    it("throws 404 for non-existent event", async () => {
       mockPrisma.event.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.updateEvent(userId, 'no-such-id', { version: 1, title: 'Nope' }),
+        service.updateEvent(userId, "no-such-id", {
+          version: 1,
+          title: "Nope",
+        }),
       ).rejects.toThrow(NotFoundException);
     });
 
-    it('rejects non-member', async () => {
+    it("rejects non-member", async () => {
       mockPrisma.event.findFirst.mockResolvedValue(timedEvent);
       mockPolicy.authorize.mockRejectedValue(
-        new ForbiddenException('Not a member of this calendar'),
+        new ForbiddenException("Not a member of this calendar"),
       );
 
       await expect(
-        service.updateEvent(userId, eventId, { version: 1, title: 'Nope' }),
+        service.updateEvent(userId, eventId, { version: 1, title: "Nope" }),
       ).rejects.toThrow(ForbiddenException);
     });
 
-    it('rejects setting startDate/endDate on timed event', async () => {
+    it("rejects setting startDate/endDate on timed event", async () => {
       mockPrisma.event.findFirst.mockResolvedValue(timedEvent);
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.MEMBER });
 
       await expect(
         service.updateEvent(userId, eventId, {
           version: 1,
-          startDate: '2026-02-26',
+          startDate: "2026-02-26",
         }),
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('rejects setting startAtUtc/endAtUtc on all-day event', async () => {
+    it("rejects setting startAtUtc/endAtUtc on all-day event", async () => {
       mockPrisma.event.findFirst.mockResolvedValue(allDayEvent);
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.MEMBER });
 
       await expect(
-        service.updateEvent(userId, 'evt-2', {
+        service.updateEvent(userId, "evt-2", {
           version: 1,
-          startAtUtc: '2026-02-26T03:00:00Z',
+          startAtUtc: "2026-02-26T03:00:00Z",
         }),
       ).rejects.toThrow(BadRequestException);
     });
   });
 
-  describe('deleteEvent', () => {
-    it('soft-deletes event', async () => {
+  describe("deleteEvent", () => {
+    it("soft-deletes event", async () => {
       mockPrisma.event.findFirst.mockResolvedValue(timedEvent);
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.MEMBER });
       mockPrisma.event.update.mockResolvedValue({
@@ -561,14 +574,14 @@ describe('EventsService', () => {
 
       const result = await service.deleteEvent(userId, eventId);
 
-      expect(result).toEqual({ ok: true, revision: '300' });
+      expect(result).toEqual({ ok: true, revision: "300" });
       expect(mockPrisma.event.update).toHaveBeenCalledWith({
         where: { id: eventId },
         data: { deletedAt: expect.any(Date) },
       });
     });
 
-    it('records DELETE audit on event deletion', async () => {
+    it("records DELETE audit on event deletion", async () => {
       mockPrisma.event.findFirst.mockResolvedValue(timedEvent);
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.MEMBER });
       mockPrisma.event.update.mockResolvedValue({
@@ -588,25 +601,31 @@ describe('EventsService', () => {
       );
     });
 
-    it('throws 404 for already-deleted event', async () => {
+    it("throws 404 for already-deleted event", async () => {
       mockPrisma.event.findFirst.mockResolvedValue(null);
 
-      await expect(service.deleteEvent(userId, eventId)).rejects.toThrow(NotFoundException);
+      await expect(service.deleteEvent(userId, eventId)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
-    it('throws 404 for non-existent event', async () => {
+    it("throws 404 for non-existent event", async () => {
       mockPrisma.event.findFirst.mockResolvedValue(null);
 
-      await expect(service.deleteEvent(userId, 'no-such-id')).rejects.toThrow(NotFoundException);
+      await expect(service.deleteEvent(userId, "no-such-id")).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
-    it('rejects non-member', async () => {
+    it("rejects non-member", async () => {
       mockPrisma.event.findFirst.mockResolvedValue(timedEvent);
       mockPolicy.authorize.mockRejectedValue(
-        new ForbiddenException('Not a member of this calendar'),
+        new ForbiddenException("Not a member of this calendar"),
       );
 
-      await expect(service.deleteEvent(userId, eventId)).rejects.toThrow(ForbiddenException);
+      await expect(service.deleteEvent(userId, eventId)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 });

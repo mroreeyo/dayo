@@ -1,9 +1,9 @@
-import { Module } from '@nestjs/common';
-import { MembersController } from './members.controller';
-import { MembersService } from './members.service';
-import { CalendarsModule } from '../calendars/calendars.module';
-import { AuditModule } from '../audit/audit.module';
-import { RealtimeModule } from '../realtime/realtime.module';
+import { Module } from "@nestjs/common";
+import { MembersController } from "./members.controller";
+import { MembersService } from "./members.service";
+import { CalendarsModule } from "../calendars/calendars.module";
+import { AuditModule } from "../audit/audit.module";
+import { RealtimeModule } from "../realtime/realtime.module";
 
 @Module({
   imports: [CalendarsModule, AuditModule, RealtimeModule],

@@ -1,12 +1,18 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-import { RegisterDeviceTokenDto, DeviceTokenResponseDto } from './notifications.dto';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { PrismaService } from "../../prisma/prisma.service";
+import {
+  RegisterDeviceTokenDto,
+  DeviceTokenResponseDto,
+} from "./notifications.dto";
 
 @Injectable()
 export class NotificationsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async registerToken(userId: string, dto: RegisterDeviceTokenDto): Promise<DeviceTokenResponseDto> {
+  async registerToken(
+    userId: string,
+    dto: RegisterDeviceTokenDto,
+  ): Promise<DeviceTokenResponseDto> {
     const existing = await this.prisma.deviceToken.findUnique({
       where: { token: dto.token },
     });
@@ -36,7 +42,7 @@ export class NotificationsService {
     });
 
     if (!token) {
-      throw new NotFoundException('Device token not found');
+      throw new NotFoundException("Device token not found");
     }
 
     await this.prisma.deviceToken.delete({ where: { id: tokenId } });
@@ -45,7 +51,7 @@ export class NotificationsService {
   async getTokensForUser(userId: string): Promise<DeviceTokenResponseDto[]> {
     const tokens = await this.prisma.deviceToken.findMany({
       where: { userId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
 
     return tokens.map((t) => this.toDto(t));

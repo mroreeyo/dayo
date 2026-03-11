@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
-import { Event, EventException, EventRecurrenceRule } from '@prisma/client';
-import { RRule, rrulestr } from 'rrule';
-import { OccurrenceResult } from './recurrence.types';
+import { Injectable } from "@nestjs/common";
+import { Event, EventException, EventRecurrenceRule } from "@prisma/client";
+import { RRule, rrulestr } from "rrule";
+import { OccurrenceResult } from "./recurrence.types";
 
 function toIso(d: Date): string {
   return d.toISOString();
@@ -9,42 +9,42 @@ function toIso(d: Date): string {
 
 function toDateKey(d: Date): string {
   const yyyy = d.getUTCFullYear();
-  const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
-  const dd = String(d.getUTCDate()).padStart(2, '0');
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(d.getUTCDate()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}`;
 }
 
 export type MasterEvent = Pick<
   Event,
-  | 'id'
-  | 'calendarId'
-  | 'title'
-  | 'note'
-  | 'location'
-  | 'color'
-  | 'timezone'
-  | 'allDay'
-  | 'startAtUtc'
-  | 'endAtUtc'
-  | 'startDate'
-  | 'endDate'
+  | "id"
+  | "calendarId"
+  | "title"
+  | "note"
+  | "location"
+  | "color"
+  | "timezone"
+  | "allDay"
+  | "startAtUtc"
+  | "endAtUtc"
+  | "startDate"
+  | "endDate"
 >;
 
 export type RuleInput = Pick<
   EventRecurrenceRule,
-  'rrule' | 'dtstartUtc' | 'dtstartDate' | 'untilUtc' | 'count'
+  "rrule" | "dtstartUtc" | "dtstartDate" | "untilUtc" | "count"
 >;
 
 export type ExceptionInput = Pick<
   EventException,
-  'exceptionKey' | 'action' | 'overridePayload' | 'deletedAt'
+  "exceptionKey" | "action" | "overridePayload" | "deletedAt"
 >;
 
 @Injectable()
 export class RecurrenceService {
   private parseRule(rruleText: string, dtstart: Date): RRule {
     const t = rruleText.trim();
-    const normalized = t.startsWith('RRULE:') ? t : `RRULE:${t}`;
+    const normalized = t.startsWith("RRULE:") ? t : `RRULE:${t}`;
     const parsed = rrulestr(normalized, { dtstart, forceset: false });
     return parsed as RRule;
   }
@@ -121,7 +121,7 @@ export class RecurrenceService {
       const occurrenceKey = master.allDay ? toDateKey(start) : toIso(start);
 
       const ex = exMap.get(occurrenceKey);
-      if (ex?.action === 'CANCEL') continue;
+      if (ex?.action === "CANCEL") continue;
 
       let occ: OccurrenceResult;
       if (!master.allDay) {
@@ -159,7 +159,7 @@ export class RecurrenceService {
         };
       }
 
-      if (ex?.action === 'OVERRIDE' && ex.overridePayload) {
+      if (ex?.action === "OVERRIDE" && ex.overridePayload) {
         const p = ex.overridePayload as Record<string, unknown>;
         occ = {
           ...occ,
@@ -178,9 +178,7 @@ export class RecurrenceService {
           ...(p.startDate !== undefined
             ? { startDate: p.startDate as string }
             : {}),
-          ...(p.endDate !== undefined
-            ? { endDate: p.endDate as string }
-            : {}),
+          ...(p.endDate !== undefined ? { endDate: p.endDate as string } : {}),
           overridden: true,
           occurrenceKey,
           recurringEventId: master.id,

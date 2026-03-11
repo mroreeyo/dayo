@@ -1,11 +1,11 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
-import { AuditAction, AuditEntityType, MemberRole } from '@prisma/client';
-import { MembersService } from './members.service';
-import { PrismaService } from '../../prisma/prisma.service';
-import { CalendarPolicy } from '../../libs/policies/calendar.policy';
-import { AuditService } from '../audit/audit.service';
-import { RealtimeService } from '../realtime/realtime.service';
+import { Test, TestingModule } from "@nestjs/testing";
+import { ForbiddenException, NotFoundException } from "@nestjs/common";
+import { AuditAction, AuditEntityType, MemberRole } from "@prisma/client";
+import { MembersService } from "./members.service";
+import { PrismaService } from "../../prisma/prisma.service";
+import { CalendarPolicy } from "../../libs/policies/calendar.policy";
+import { AuditService } from "../audit/audit.service";
+import { RealtimeService } from "../realtime/realtime.service";
 
 const mockPrisma = {
   calendarMember: {
@@ -30,7 +30,7 @@ const mockRealtime = {
   bindServer: jest.fn(),
 };
 
-describe('MembersService', () => {
+describe("MembersService", () => {
   let service: MembersService;
 
   beforeEach(async () => {
@@ -49,10 +49,10 @@ describe('MembersService', () => {
     service = module.get<MembersService>(MembersService);
   });
 
-  const actorId = 'user-owner';
-  const adminId = 'user-admin';
-  const memberId = 'user-member';
-  const calendarId = 'cal-1';
+  const actorId = "user-owner";
+  const adminId = "user-admin";
+  const memberId = "user-member";
+  const calendarId = "cal-1";
 
   const makeUser = (id: string, email: string, nickname: string) => ({
     id,
@@ -64,7 +64,12 @@ describe('MembersService', () => {
   const makeMember = (
     userId: string,
     role: MemberRole,
-    user: { id: string; email: string; nickname: string; avatarUrl: string | null },
+    user: {
+      id: string;
+      email: string;
+      nickname: string;
+      avatarUrl: string | null;
+    },
   ) => ({
     id: `member-${userId}`,
     calendarId,
@@ -74,12 +79,12 @@ describe('MembersService', () => {
     user,
   });
 
-  describe('listMembers', () => {
-    it('returns all members of a calendar', async () => {
+  describe("listMembers", () => {
+    it("returns all members of a calendar", async () => {
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.MEMBER });
 
-      const ownerUser = makeUser(actorId, 'owner@test.com', 'Owner');
-      const memberUser = makeUser(memberId, 'member@test.com', 'Member');
+      const ownerUser = makeUser(actorId, "owner@test.com", "Owner");
+      const memberUser = makeUser(memberId, "member@test.com", "Member");
 
       mockPrisma.calendarMember.findMany.mockResolvedValue([
         makeMember(actorId, MemberRole.OWNER, ownerUser),
@@ -92,31 +97,35 @@ describe('MembersService', () => {
       expect(result.items[0]).toEqual({
         id: `member-${actorId}`,
         userId: actorId,
-        email: 'owner@test.com',
-        nickname: 'Owner',
+        email: "owner@test.com",
+        nickname: "Owner",
         avatarUrl: null,
         role: MemberRole.OWNER,
-        revision: '100',
+        revision: "100",
       });
-      expect(mockPolicy.authorize).toHaveBeenCalledWith(actorId, calendarId, MemberRole.MEMBER);
+      expect(mockPolicy.authorize).toHaveBeenCalledWith(
+        actorId,
+        calendarId,
+        MemberRole.MEMBER,
+      );
     });
 
-    it('rejects non-member', async () => {
+    it("rejects non-member", async () => {
       mockPolicy.authorize.mockRejectedValue(
-        new ForbiddenException('Not a member of this calendar'),
+        new ForbiddenException("Not a member of this calendar"),
       );
 
-      await expect(service.listMembers('stranger', calendarId)).rejects.toThrow(
+      await expect(service.listMembers("stranger", calendarId)).rejects.toThrow(
         ForbiddenException,
       );
     });
   });
 
-  describe('updateRole', () => {
-    it('allows OWNER to change MEMBER to ADMIN', async () => {
+  describe("updateRole", () => {
+    it("allows OWNER to change MEMBER to ADMIN", async () => {
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.OWNER });
 
-      const targetUser = makeUser(memberId, 'member@test.com', 'Member');
+      const targetUser = makeUser(memberId, "member@test.com", "Member");
       mockPrisma.calendarMember.findUnique.mockResolvedValue(
         makeMember(memberId, MemberRole.MEMBER, targetUser),
       );
@@ -129,13 +138,17 @@ describe('MembersService', () => {
       });
 
       expect(result.role).toBe(MemberRole.ADMIN);
-      expect(mockPolicy.authorize).toHaveBeenCalledWith(actorId, calendarId, MemberRole.ADMIN);
+      expect(mockPolicy.authorize).toHaveBeenCalledWith(
+        actorId,
+        calendarId,
+        MemberRole.ADMIN,
+      );
     });
 
-    it('records ROLE_CHANGE audit on role update', async () => {
+    it("records ROLE_CHANGE audit on role update", async () => {
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.OWNER });
 
-      const targetUser = makeUser(memberId, 'member@test.com', 'Member');
+      const targetUser = makeUser(memberId, "member@test.com", "Member");
       mockPrisma.calendarMember.findUnique.mockResolvedValue(
         makeMember(memberId, MemberRole.MEMBER, targetUser),
       );
@@ -153,14 +166,18 @@ describe('MembersService', () => {
         AuditEntityType.MEMBER,
         `member-${memberId}`,
         AuditAction.ROLE_CHANGE,
-        { targetUserId: memberId, from: MemberRole.MEMBER, to: MemberRole.ADMIN },
+        {
+          targetUserId: memberId,
+          from: MemberRole.MEMBER,
+          to: MemberRole.ADMIN,
+        },
       );
     });
 
-    it('allows ADMIN to change MEMBER role', async () => {
+    it("allows ADMIN to change MEMBER role", async () => {
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.ADMIN });
 
-      const targetUser = makeUser(memberId, 'member@test.com', 'Member');
+      const targetUser = makeUser(memberId, "member@test.com", "Member");
       mockPrisma.calendarMember.findUnique.mockResolvedValue(
         makeMember(memberId, MemberRole.MEMBER, targetUser),
       );
@@ -175,67 +192,77 @@ describe('MembersService', () => {
       expect(result).toBeDefined();
     });
 
-    it('rejects changing OWNER role', async () => {
+    it("rejects changing OWNER role", async () => {
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.OWNER });
 
-      const ownerUser = makeUser('other-owner', 'owner2@test.com', 'Owner2');
+      const ownerUser = makeUser("other-owner", "owner2@test.com", "Owner2");
       mockPrisma.calendarMember.findUnique.mockResolvedValue(
-        makeMember('other-owner', MemberRole.OWNER, ownerUser),
+        makeMember("other-owner", MemberRole.OWNER, ownerUser),
       );
 
       await expect(
-        service.updateRole(actorId, calendarId, 'other-owner', { role: MemberRole.ADMIN }),
+        service.updateRole(actorId, calendarId, "other-owner", {
+          role: MemberRole.ADMIN,
+        }),
       ).rejects.toThrow(ForbiddenException);
     });
 
-    it('rejects assigning OWNER role', async () => {
+    it("rejects assigning OWNER role", async () => {
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.OWNER });
 
-      const targetUser = makeUser(memberId, 'member@test.com', 'Member');
+      const targetUser = makeUser(memberId, "member@test.com", "Member");
       mockPrisma.calendarMember.findUnique.mockResolvedValue(
         makeMember(memberId, MemberRole.MEMBER, targetUser),
       );
 
       await expect(
-        service.updateRole(actorId, calendarId, memberId, { role: MemberRole.OWNER }),
+        service.updateRole(actorId, calendarId, memberId, {
+          role: MemberRole.OWNER,
+        }),
       ).rejects.toThrow(ForbiddenException);
     });
 
-    it('rejects ADMIN assigning ADMIN role (equal to own)', async () => {
+    it("rejects ADMIN assigning ADMIN role (equal to own)", async () => {
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.ADMIN });
 
-      const targetUser = makeUser(memberId, 'member@test.com', 'Member');
+      const targetUser = makeUser(memberId, "member@test.com", "Member");
       mockPrisma.calendarMember.findUnique.mockResolvedValue(
         makeMember(memberId, MemberRole.MEMBER, targetUser),
       );
 
       await expect(
-        service.updateRole(adminId, calendarId, memberId, { role: MemberRole.ADMIN }),
+        service.updateRole(adminId, calendarId, memberId, {
+          role: MemberRole.ADMIN,
+        }),
       ).rejects.toThrow(ForbiddenException);
     });
 
-    it('throws NotFoundException for non-existent target', async () => {
+    it("throws NotFoundException for non-existent target", async () => {
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.OWNER });
       mockPrisma.calendarMember.findUnique.mockResolvedValue(null);
 
       await expect(
-        service.updateRole(actorId, calendarId, 'ghost', { role: MemberRole.ADMIN }),
+        service.updateRole(actorId, calendarId, "ghost", {
+          role: MemberRole.ADMIN,
+        }),
       ).rejects.toThrow(NotFoundException);
     });
 
-    it('rejects MEMBER trying to update roles', async () => {
+    it("rejects MEMBER trying to update roles", async () => {
       mockPolicy.authorize.mockRejectedValue(
-        new ForbiddenException('Requires ADMIN role or higher'),
+        new ForbiddenException("Requires ADMIN role or higher"),
       );
 
       await expect(
-        service.updateRole(memberId, calendarId, 'someone', { role: MemberRole.MEMBER }),
+        service.updateRole(memberId, calendarId, "someone", {
+          role: MemberRole.MEMBER,
+        }),
       ).rejects.toThrow(ForbiddenException);
     });
   });
 
-  describe('removeMember', () => {
-    it('allows ADMIN to remove MEMBER', async () => {
+  describe("removeMember", () => {
+    it("allows ADMIN to remove MEMBER", async () => {
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.ADMIN });
 
       mockPrisma.calendarMember.findUnique.mockResolvedValue({
@@ -252,10 +279,10 @@ describe('MembersService', () => {
 
       const result = await service.removeMember(adminId, calendarId, memberId);
 
-      expect(result).toEqual({ ok: true, revision: '200' });
+      expect(result).toEqual({ ok: true, revision: "200" });
     });
 
-    it('records DELETE audit when admin removes member', async () => {
+    it("records DELETE audit when admin removes member", async () => {
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.ADMIN });
 
       mockPrisma.calendarMember.findUnique.mockResolvedValue({
@@ -282,7 +309,7 @@ describe('MembersService', () => {
       );
     });
 
-    it('allows MEMBER to self-leave', async () => {
+    it("allows MEMBER to self-leave", async () => {
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.MEMBER });
 
       mockPrisma.calendarMember.delete.mockResolvedValue({
@@ -292,11 +319,15 @@ describe('MembersService', () => {
 
       const result = await service.removeMember(memberId, calendarId, memberId);
 
-      expect(result).toEqual({ ok: true, revision: '201' });
-      expect(mockPolicy.authorize).toHaveBeenCalledWith(memberId, calendarId, MemberRole.MEMBER);
+      expect(result).toEqual({ ok: true, revision: "201" });
+      expect(mockPolicy.authorize).toHaveBeenCalledWith(
+        memberId,
+        calendarId,
+        MemberRole.MEMBER,
+      );
     });
 
-    it('records LEAVE audit on self-leave', async () => {
+    it("records LEAVE audit on self-leave", async () => {
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.MEMBER });
 
       mockPrisma.calendarMember.delete.mockResolvedValue({
@@ -316,7 +347,7 @@ describe('MembersService', () => {
       );
     });
 
-    it('prevents OWNER from self-leaving', async () => {
+    it("prevents OWNER from self-leaving", async () => {
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.OWNER });
 
       await expect(
@@ -324,7 +355,7 @@ describe('MembersService', () => {
       ).rejects.toThrow(ForbiddenException);
     });
 
-    it('prevents ADMIN from removing OWNER', async () => {
+    it("prevents ADMIN from removing OWNER", async () => {
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.ADMIN });
 
       mockPrisma.calendarMember.findUnique.mockResolvedValue({
@@ -338,36 +369,36 @@ describe('MembersService', () => {
       ).rejects.toThrow(ForbiddenException);
     });
 
-    it('prevents ADMIN from removing another ADMIN', async () => {
+    it("prevents ADMIN from removing another ADMIN", async () => {
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.ADMIN });
 
       mockPrisma.calendarMember.findUnique.mockResolvedValue({
         calendarId,
-        userId: 'admin-2',
+        userId: "admin-2",
         role: MemberRole.ADMIN,
       });
 
       await expect(
-        service.removeMember(adminId, calendarId, 'admin-2'),
+        service.removeMember(adminId, calendarId, "admin-2"),
       ).rejects.toThrow(ForbiddenException);
     });
 
-    it('throws NotFoundException for non-existent target', async () => {
+    it("throws NotFoundException for non-existent target", async () => {
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.ADMIN });
       mockPrisma.calendarMember.findUnique.mockResolvedValue(null);
 
       await expect(
-        service.removeMember(adminId, calendarId, 'ghost'),
+        service.removeMember(adminId, calendarId, "ghost"),
       ).rejects.toThrow(NotFoundException);
     });
 
-    it('rejects MEMBER trying to remove another member', async () => {
+    it("rejects MEMBER trying to remove another member", async () => {
       mockPolicy.authorize.mockRejectedValue(
-        new ForbiddenException('Requires ADMIN role or higher'),
+        new ForbiddenException("Requires ADMIN role or higher"),
       );
 
       await expect(
-        service.removeMember(memberId, calendarId, 'someone-else'),
+        service.removeMember(memberId, calendarId, "someone-else"),
       ).rejects.toThrow(ForbiddenException);
     });
   });

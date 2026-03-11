@@ -1,8 +1,8 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { MemberRole } from '@prisma/client';
-import { MembersController } from './members.controller';
-import { MembersService } from './members.service';
-import { RequestUser } from '../../common/auth/types';
+import { Test, TestingModule } from "@nestjs/testing";
+import { MemberRole } from "@prisma/client";
+import { MembersController } from "./members.controller";
+import { MembersService } from "./members.service";
+import { RequestUser } from "../../common/auth/types";
 
 const mockService = {
   listMembers: jest.fn(),
@@ -10,10 +10,10 @@ const mockService = {
   removeMember: jest.fn(),
 };
 
-describe('MembersController', () => {
+describe("MembersController", () => {
   let controller: MembersController;
-  const user: RequestUser = { id: 'user-1', email: 'test@test.com' };
-  const calendarId = 'cal-1';
+  const user: RequestUser = { id: "user-1", email: "test@test.com" };
+  const calendarId = "cal-1";
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -26,8 +26,8 @@ describe('MembersController', () => {
     controller = module.get<MembersController>(MembersController);
   });
 
-  describe('listMembers', () => {
-    it('delegates to service with user id and calendar id', async () => {
+  describe("listMembers", () => {
+    it("delegates to service with user id and calendar id", async () => {
       const expected = { items: [] };
       mockService.listMembers.mockResolvedValue(expected);
 
@@ -38,22 +38,27 @@ describe('MembersController', () => {
     });
   });
 
-  describe('updateRole', () => {
-    it('delegates to service with all params', async () => {
-      const targetUserId = 'user-2';
+  describe("updateRole", () => {
+    it("delegates to service with all params", async () => {
+      const targetUserId = "user-2";
       const dto = { role: MemberRole.ADMIN };
       const expected = {
-        id: 'member-1',
+        id: "member-1",
         userId: targetUserId,
-        email: 'user2@test.com',
-        nickname: 'User2',
+        email: "user2@test.com",
+        nickname: "User2",
         avatarUrl: null,
         role: MemberRole.ADMIN,
-        revision: '100',
+        revision: "100",
       };
       mockService.updateRole.mockResolvedValue(expected);
 
-      const result = await controller.updateRole(user, calendarId, targetUserId, dto);
+      const result = await controller.updateRole(
+        user,
+        calendarId,
+        targetUserId,
+        dto,
+      );
 
       expect(result).toEqual(expected);
       expect(mockService.updateRole).toHaveBeenCalledWith(
@@ -65,13 +70,17 @@ describe('MembersController', () => {
     });
   });
 
-  describe('removeMember', () => {
-    it('delegates to service with all params', async () => {
-      const targetUserId = 'user-2';
-      const expected = { ok: true, revision: '200' };
+  describe("removeMember", () => {
+    it("delegates to service with all params", async () => {
+      const targetUserId = "user-2";
+      const expected = { ok: true, revision: "200" };
       mockService.removeMember.mockResolvedValue(expected);
 
-      const result = await controller.removeMember(user, calendarId, targetUserId);
+      const result = await controller.removeMember(
+        user,
+        calendarId,
+        targetUserId,
+      );
 
       expect(result).toEqual(expected);
       expect(mockService.removeMember).toHaveBeenCalledWith(

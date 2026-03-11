@@ -1,6 +1,10 @@
-import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
-import { MemberRole } from '@prisma/client';
-import { PrismaService } from '../../prisma/prisma.service';
+import {
+  Injectable,
+  ForbiddenException,
+  NotFoundException,
+} from "@nestjs/common";
+import { MemberRole } from "@prisma/client";
+import { PrismaService } from "../../prisma/prisma.service";
 
 const ROLE_LEVEL: Record<MemberRole, number> = {
   OWNER: 30,
@@ -12,17 +16,13 @@ const ROLE_LEVEL: Record<MemberRole, number> = {
 export class CalendarPolicy {
   constructor(private readonly prisma: PrismaService) {}
 
-  async authorize(
-    userId: string,
-    calendarId: string,
-    minRole: MemberRole,
-  ) {
+  async authorize(userId: string, calendarId: string, minRole: MemberRole) {
     const calendar = await this.prisma.calendar.findUnique({
       where: { id: calendarId },
     });
 
     if (!calendar) {
-      throw new NotFoundException('Calendar not found');
+      throw new NotFoundException("Calendar not found");
     }
 
     const member = await this.prisma.calendarMember.findUnique({
@@ -30,13 +30,11 @@ export class CalendarPolicy {
     });
 
     if (!member) {
-      throw new ForbiddenException('Not a member of this calendar');
+      throw new ForbiddenException("Not a member of this calendar");
     }
 
     if (ROLE_LEVEL[member.role] < ROLE_LEVEL[minRole]) {
-      throw new ForbiddenException(
-        `Requires ${minRole} role or higher`,
-      );
+      throw new ForbiddenException(`Requires ${minRole} role or higher`);
     }
 
     return member;

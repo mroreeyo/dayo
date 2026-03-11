@@ -1,16 +1,20 @@
-import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
-import { AuditAction, AuditEntityType, MemberRole } from '@prisma/client';
-import { PrismaService } from '../../prisma/prisma.service';
-import { CalendarPolicy } from '../../libs/policies/calendar.policy';
-import { AuditService } from '../audit/audit.service';
+import {
+  Injectable,
+  ForbiddenException,
+  NotFoundException,
+} from "@nestjs/common";
+import { AuditAction, AuditEntityType, MemberRole } from "@prisma/client";
+import { PrismaService } from "../../prisma/prisma.service";
+import { CalendarPolicy } from "../../libs/policies/calendar.policy";
+import { AuditService } from "../audit/audit.service";
 import {
   ListMembersResponseDto,
   MemberDto,
   UpdateMemberRoleDto,
-} from './members.dto';
-import { OkRevisionResponseDto } from '../../common/dto/ok-revision.dto';
-import { RealtimeService } from '../realtime/realtime.service';
-import { RT_EVENTS } from '../../libs/realtime/events';
+} from "./members.dto";
+import { OkRevisionResponseDto } from "../../common/dto/ok-revision.dto";
+import { RealtimeService } from "../realtime/realtime.service";
+import { RT_EVENTS } from "../../libs/realtime/events";
 
 const ROLE_LEVEL: Record<MemberRole, number> = {
   OWNER: 30,
@@ -57,7 +61,11 @@ export class MembersService {
     targetUserId: string,
     dto: UpdateMemberRoleDto,
   ): Promise<MemberDto> {
-    const actor = await this.policy.authorize(actorId, calendarId, MemberRole.ADMIN);
+    const actor = await this.policy.authorize(
+      actorId,
+      calendarId,
+      MemberRole.ADMIN,
+    );
 
     const target = await this.prisma.calendarMember.findUnique({
       where: { calendarId_userId: { calendarId, userId: targetUserId } },
@@ -65,19 +73,21 @@ export class MembersService {
     });
 
     if (!target) {
-      throw new NotFoundException('Target member not found');
+      throw new NotFoundException("Target member not found");
     }
 
     if (target.role === MemberRole.OWNER) {
-      throw new ForbiddenException('Cannot change OWNER role');
+      throw new ForbiddenException("Cannot change OWNER role");
     }
 
     if (ROLE_LEVEL[dto.role] >= ROLE_LEVEL[actor.role]) {
-      throw new ForbiddenException('Cannot assign role equal to or higher than your own');
+      throw new ForbiddenException(
+        "Cannot assign role equal to or higher than your own",
+      );
     }
 
     if (dto.role === MemberRole.OWNER) {
-      throw new ForbiddenException('Cannot assign OWNER role');
+      throw new ForbiddenException("Cannot assign OWNER role");
     }
 
     const previousRole = target.role;
@@ -122,24 +132,34 @@ export class MembersService {
     const isSelfLeave = actorId === targetUserId;
 
     if (isSelfLeave) {
-      const self = await this.policy.authorize(actorId, calendarId, MemberRole.MEMBER);
+      const self = await this.policy.authorize(
+        actorId,
+        calendarId,
+        MemberRole.MEMBER,
+      );
 
       if (self.role === MemberRole.OWNER) {
-        throw new ForbiddenException('OWNER cannot leave the calendar');
+        throw new ForbiddenException("OWNER cannot leave the calendar");
       }
     } else {
-      const actor = await this.policy.authorize(actorId, calendarId, MemberRole.ADMIN);
+      const actor = await this.policy.authorize(
+        actorId,
+        calendarId,
+        MemberRole.ADMIN,
+      );
 
       const target = await this.prisma.calendarMember.findUnique({
         where: { calendarId_userId: { calendarId, userId: targetUserId } },
       });
 
       if (!target) {
-        throw new NotFoundException('Target member not found');
+        throw new NotFoundException("Target member not found");
       }
 
       if (ROLE_LEVEL[target.role] >= ROLE_LEVEL[actor.role]) {
-        throw new ForbiddenException('Cannot remove a member with equal or higher role');
+        throw new ForbiddenException(
+          "Cannot remove a member with equal or higher role",
+        );
       }
     }
 

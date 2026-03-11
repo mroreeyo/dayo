@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common';
-import { WsException } from '@nestjs/websockets';
-import { Server, Socket } from 'socket.io';
-import { PrismaService } from '../../prisma/prisma.service';
-import { RtEvent, RtPayload } from '../../libs/realtime/events';
+import { Injectable } from "@nestjs/common";
+import { WsException } from "@nestjs/websockets";
+import { Server, Socket } from "socket.io";
+import { PrismaService } from "../../prisma/prisma.service";
+import { RtEvent, RtPayload } from "../../libs/realtime/events";
 
 @Injectable()
 export class RealtimeService {
@@ -24,7 +24,7 @@ export class RealtimeService {
     });
 
     if (!member) {
-      throw new WsException('Not a member of this calendar');
+      throw new WsException("Not a member of this calendar");
     }
 
     await client.join(`calendar:${calendarId}`);

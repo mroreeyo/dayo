@@ -1,8 +1,8 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
-import { Queue } from 'bullmq';
-import IORedis from 'ioredis';
-import { QUEUE_NAMES } from '../../libs/jobs/queue-names';
-import { ReminderJobData } from '../../libs/jobs/job-types';
+import { Injectable, OnModuleDestroy } from "@nestjs/common";
+import { Queue } from "bullmq";
+import IORedis from "ioredis";
+import { QUEUE_NAMES } from "../../libs/jobs/queue-names";
+import { ReminderJobData } from "../../libs/jobs/job-types";
 
 @Injectable()
 export class QueuesService implements OnModuleDestroy {
@@ -11,14 +11,14 @@ export class QueuesService implements OnModuleDestroy {
   private readonly maintenanceQueue: Queue;
 
   constructor() {
-    const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+    const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
     this.connection = new IORedis(redisUrl, { maxRetriesPerRequest: null });
 
     this.reminderQueue = new Queue<ReminderJobData>(QUEUE_NAMES.REMINDER, {
       connection: this.connection,
       defaultJobOptions: {
         attempts: 3,
-        backoff: { type: 'exponential', delay: 1000 },
+        backoff: { type: "exponential", delay: 1000 },
         removeOnComplete: true,
         removeOnFail: false,
       },
@@ -38,7 +38,7 @@ export class QueuesService implements OnModuleDestroy {
     const delay = Math.max(0, new Date(data.fireAt).getTime() - Date.now());
     const jobId = `reminder:${data.eventId}`;
 
-    await this.reminderQueue.add('send-reminder', data, {
+    await this.reminderQueue.add("send-reminder", data, {
       jobId,
       delay,
     });

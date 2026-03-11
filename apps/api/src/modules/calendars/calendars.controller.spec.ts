@@ -1,8 +1,8 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { MemberRole } from '@prisma/client';
-import { CalendarsController } from './calendars.controller';
-import { CalendarsService } from './calendars.service';
-import { RequestUser } from '../../common/auth/types';
+import { Test, TestingModule } from "@nestjs/testing";
+import { MemberRole } from "@prisma/client";
+import { CalendarsController } from "./calendars.controller";
+import { CalendarsService } from "./calendars.service";
+import { RequestUser } from "../../common/auth/types";
 
 const mockService = {
   listMyCalendars: jest.fn(),
@@ -11,9 +11,9 @@ const mockService = {
   deleteCalendar: jest.fn(),
 };
 
-describe('CalendarsController', () => {
+describe("CalendarsController", () => {
   let controller: CalendarsController;
-  const user: RequestUser = { id: 'user-1', email: 'test@test.com' };
+  const user: RequestUser = { id: "user-1", email: "test@test.com" };
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -26,8 +26,8 @@ describe('CalendarsController', () => {
     controller = module.get<CalendarsController>(CalendarsController);
   });
 
-  describe('listMyCalendars', () => {
-    it('delegates to service with user id', async () => {
+  describe("listMyCalendars", () => {
+    it("delegates to service with user id", async () => {
       const expected = { items: [] };
       mockService.listMyCalendars.mockResolvedValue(expected);
 
@@ -38,15 +38,15 @@ describe('CalendarsController', () => {
     });
   });
 
-  describe('create', () => {
-    it('delegates to service with user id and dto', async () => {
-      const dto = { name: 'Family', color: '#FF0000' };
+  describe("create", () => {
+    it("delegates to service with user id and dto", async () => {
+      const dto = { name: "Family", color: "#FF0000" };
       const expected = {
-        id: 'cal-1',
-        name: 'Family',
-        color: '#FF0000',
+        id: "cal-1",
+        name: "Family",
+        color: "#FF0000",
         role: MemberRole.OWNER,
-        revision: '1',
+        revision: "1",
       };
       mockService.createCalendar.mockResolvedValue(expected);
 
@@ -57,36 +57,43 @@ describe('CalendarsController', () => {
     });
   });
 
-  describe('update', () => {
-    it('delegates to service with user id, calendar id, and dto', async () => {
-      const calendarId = 'cal-1';
-      const dto = { name: 'Updated' };
+  describe("update", () => {
+    it("delegates to service with user id, calendar id, and dto", async () => {
+      const calendarId = "cal-1";
+      const dto = { name: "Updated" };
       const expected = {
         id: calendarId,
-        name: 'Updated',
+        name: "Updated",
         color: null,
         role: MemberRole.ADMIN,
-        revision: '10',
+        revision: "10",
       };
       mockService.updateCalendar.mockResolvedValue(expected);
 
       const result = await controller.update(user, calendarId, dto);
 
       expect(result).toEqual(expected);
-      expect(mockService.updateCalendar).toHaveBeenCalledWith(user.id, calendarId, dto);
+      expect(mockService.updateCalendar).toHaveBeenCalledWith(
+        user.id,
+        calendarId,
+        dto,
+      );
     });
   });
 
-  describe('remove', () => {
-    it('delegates to service with user id and calendar id', async () => {
-      const calendarId = 'cal-1';
-      const expected = { ok: true, revision: '50' };
+  describe("remove", () => {
+    it("delegates to service with user id and calendar id", async () => {
+      const calendarId = "cal-1";
+      const expected = { ok: true, revision: "50" };
       mockService.deleteCalendar.mockResolvedValue(expected);
 
       const result = await controller.remove(user, calendarId);
 
       expect(result).toEqual(expected);
-      expect(mockService.deleteCalendar).toHaveBeenCalledWith(user.id, calendarId);
+      expect(mockService.deleteCalendar).toHaveBeenCalledWith(
+        user.id,
+        calendarId,
+      );
     });
   });
 });

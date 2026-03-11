@@ -7,5 +7,5 @@ export type ReminderJobData = {
 };
 
 export type MaintenanceJobData = {
-  task: 'CLEAN_AUDIT' | 'CLEAN_EXPIRED_INVITES' | 'CLEAN_STALE_TOKENS';
+  task: "CLEAN_AUDIT" | "CLEAN_EXPIRED_INVITES" | "CLEAN_STALE_TOKENS";
 };

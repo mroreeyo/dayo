@@ -1,27 +1,27 @@
-import { randomBytes } from 'node:crypto';
+import { randomBytes } from "node:crypto";
 import {
   ConflictException,
   GoneException,
   Injectable,
   NotFoundException,
-} from '@nestjs/common';
-import { AuditAction, AuditEntityType, MemberRole } from '@prisma/client';
-import { PrismaService } from '../../prisma/prisma.service';
-import { CalendarPolicy } from '../../libs/policies/calendar.policy';
-import { AuditService } from '../audit/audit.service';
+} from "@nestjs/common";
+import { AuditAction, AuditEntityType, MemberRole } from "@prisma/client";
+import { PrismaService } from "../../prisma/prisma.service";
+import { CalendarPolicy } from "../../libs/policies/calendar.policy";
+import { AuditService } from "../audit/audit.service";
 import {
   CreateInviteDto,
   CreateInviteResponseDto,
   InviteDto,
   JoinByCodeResponseDto,
-} from './invites.dto';
-import { RealtimeService } from '../realtime/realtime.service';
-import { RT_EVENTS } from '../../libs/realtime/events';
+} from "./invites.dto";
+import { RealtimeService } from "../realtime/realtime.service";
+import { RT_EVENTS } from "../../libs/realtime/events";
 
 const INVITE_CODE_BYTES = 24;
 
 function generateInviteCode(): string {
-  return randomBytes(INVITE_CODE_BYTES).toString('base64url');
+  return randomBytes(INVITE_CODE_BYTES).toString("base64url");
 }
 
 function toInviteDto(invite: {
@@ -75,7 +75,10 @@ export class InvitesService {
       AuditEntityType.INVITE,
       invite.id,
       AuditAction.CREATE,
-      { maxUses: invite.maxUses, expiresAt: invite.expiresAt?.toISOString() ?? null },
+      {
+        maxUses: invite.maxUses,
+        expiresAt: invite.expiresAt?.toISOString() ?? null,
+      },
     );
 
     return { invite: toInviteDto(invite) };
@@ -88,15 +91,15 @@ export class InvitesService {
     const invite = await this.prisma.invite.findUnique({ where: { code } });
 
     if (!invite) {
-      throw new NotFoundException('Invalid invite code');
+      throw new NotFoundException("Invalid invite code");
     }
 
     if (invite.expiresAt && invite.expiresAt < new Date()) {
-      throw new GoneException('Invite has expired');
+      throw new GoneException("Invite has expired");
     }
 
     if (invite.maxUses !== null && invite.useCount >= invite.maxUses) {
-      throw new GoneException('Invite has reached maximum uses');
+      throw new GoneException("Invite has reached maximum uses");
     }
 
     const existingMember = await this.prisma.calendarMember.findUnique({
@@ -109,7 +112,7 @@ export class InvitesService {
     });
 
     if (existingMember) {
-      throw new ConflictException('Already a member of this calendar');
+      throw new ConflictException("Already a member of this calendar");
     }
 
     const member = await this.prisma.$transaction(async (tx) => {

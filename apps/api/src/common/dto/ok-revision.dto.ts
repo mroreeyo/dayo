@@ -1,9 +1,9 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty } from "@nestjs/swagger";
 
 export class OkRevisionResponseDto {
   @ApiProperty({ example: true })
   ok!: boolean;
 
-  @ApiProperty({ description: 'Sync cursor revision', example: '35000' })
+  @ApiProperty({ description: "Sync cursor revision", example: "35000" })
   revision!: string;
 }
