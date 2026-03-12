@@ -1,5 +1,5 @@
-import { Job } from 'bullmq';
-import { logError } from './logger';
+import { Job } from "bullmq";
+import { logError } from "./logger";
 
 export interface DlqEntry {
   jobId: string | undefined;
@@ -12,7 +12,11 @@ export interface DlqEntry {
 
 const dlqStore: DlqEntry[] = [];
 
-export function handleDlq(job: Job | undefined, err: Error, queueName: string): void {
+export function handleDlq(
+  job: Job | undefined,
+  err: Error,
+  queueName: string,
+): void {
   if (!job) return;
 
   const maxAttempts = job.opts?.attempts ?? 1;
@@ -29,9 +33,16 @@ export function handleDlq(job: Job | undefined, err: Error, queueName: string): 
 
   dlqStore.push(entry);
 
-  logError(queueName, job.id, 'dlq', `Job moved to DLQ after ${job.attemptsMade} attempts`, err, {
-    data: job.data as Record<string, unknown>,
-  });
+  logError(
+    queueName,
+    job.id,
+    "dlq",
+    `Job moved to DLQ after ${job.attemptsMade} attempts`,
+    err,
+    {
+      data: job.data as Record<string, unknown>,
+    },
+  );
 }
 
 export function getDlqEntries(): readonly DlqEntry[] {

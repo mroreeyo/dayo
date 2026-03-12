@@ -5,12 +5,22 @@ export type AuthStackParamList = {
 
 export type MainStackParamList = {
   Home: undefined;
-  EventDetail: { eventId: string; calendarId: string };
-  CalendarManage: { calendarId: string };
-  MemberList: { calendarId: string };
+  Month: { calendarId: string };
+  EventDetail: EventDetailParams;
+  CalendarManage: CalendarManageParams;
+  MemberList: MemberListParams;
+  Settings: undefined;
 };
 
-export type RootStackParamList = {
-  Auth: undefined;
-  Main: undefined;
+export type EventDetailParams = {
+  id: string;
+  calendarId?: string;
+};
+
+export type CalendarManageParams = {
+  id: string;
+};
+
+export type MemberListParams = {
+  id: string;
 };

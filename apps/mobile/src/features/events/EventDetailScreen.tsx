@@ -8,10 +8,7 @@ import { Avatar } from '../../ui/components/Avatar';
 import { Card } from '../../ui/components/Card';
 import { Icon } from '../../ui/primitives/Icon';
 import { EventEditSheet } from './EventEditSheet';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { MainStackParamList } from '../../navigation/types';
-
-type Props = NativeStackScreenProps<MainStackParamList, 'EventDetail'>;
+import { useRouter } from 'expo-router';
 
 interface EventDetailData {
   id: string;
@@ -43,7 +40,8 @@ const STUB_EVENT: EventDetailData = {
   version: 1,
 };
 
-export function EventDetailScreen({ navigation }: Props) {
+export function EventDetailScreen() {
+  const router = useRouter();
   const theme = useTheme();
   const s = getStyles(theme);
 
@@ -64,7 +62,7 @@ export function EventDetailScreen({ navigation }: Props) {
           text: '삭제',
           style: 'destructive',
           onPress: () => {
-            navigation.goBack();
+            router.back();
           },
         },
       ],

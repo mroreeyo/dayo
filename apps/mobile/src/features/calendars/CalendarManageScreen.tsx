@@ -7,10 +7,8 @@ import { Button } from '../../ui/components/Button';
 import { Input } from '../../ui/components/Input';
 import { Card } from '../../ui/components/Card';
 import { Icon } from '../../ui/primitives/Icon';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { MainStackParamList } from '../../navigation/types';
-
-type Props = NativeStackScreenProps<MainStackParamList, 'CalendarManage'>;
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import type { CalendarManageParams } from '../../navigation/types';
 
 const STUB_CALENDAR = {
   id: 'stub',
@@ -19,7 +17,9 @@ const STUB_CALENDAR = {
   role: 'OWNER' as const,
 };
 
-export function CalendarManageScreen({ navigation }: Props) {
+export function CalendarManageScreen() {
+  const router = useRouter();
+  const { id: calendarId } = useLocalSearchParams<CalendarManageParams>();
   const theme = useTheme();
   const s = getStyles(theme);
 
@@ -47,7 +47,7 @@ export function CalendarManageScreen({ navigation }: Props) {
           text: '삭제',
           style: 'destructive',
           onPress: () => {
-            navigation.goBack();
+            router.back();
           },
         },
       ],
@@ -85,7 +85,7 @@ export function CalendarManageScreen({ navigation }: Props) {
           </View>
         </View>
 
-        <Card style={s.linkCard} onPress={() => navigation.navigate('MemberList', { calendarId: calendar.id })}>
+        <Card style={s.linkCard} onPress={() => router.push(`/(main)/calendar/${calendarId ?? calendar.id}/members`)}>
           <View style={s.linkRow}>
             <Icon name="people-outline" size="md" color="secondary" />
             <Text variant="body" style={s.linkText}>멤버 관리</Text>

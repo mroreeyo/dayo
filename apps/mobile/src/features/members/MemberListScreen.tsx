@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, FlatList, StyleSheet, Alert, TextStyle } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import { useTheme } from '../../theme/ThemeProvider';
 import { Theme } from '../../theme/theme';
 import { Text } from '../../ui/primitives/Text';
@@ -7,10 +8,6 @@ import { Avatar } from '../../ui/components/Avatar';
 import { Chip } from '../../ui/components/Chip';
 import { Button } from '../../ui/components/Button';
 import { Card } from '../../ui/components/Card';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { MainStackParamList } from '../../navigation/types';
-
-type Props = NativeStackScreenProps<MainStackParamList, 'MemberList'>;
 
 type MemberRole = 'OWNER' | 'ADMIN' | 'MEMBER';
 
@@ -33,7 +30,8 @@ const STUB_MEMBERS: MemberItem[] = [
   { id: '3', name: '박서준', role: 'MEMBER' },
 ];
 
-export function MemberListScreen(_props: Props) {
+export function MemberListScreen() {
+  const { id: _calendarId } = useLocalSearchParams<{ id: string }>();
   const theme = useTheme();
   const s = getStyles(theme);
 

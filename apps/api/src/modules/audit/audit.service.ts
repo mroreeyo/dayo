@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { Prisma, AuditAction, AuditEntityType } from '@prisma/client';
-import { PrismaService } from '../../prisma/prisma.service';
+import { Injectable } from "@nestjs/common";
+import { Prisma, AuditAction, AuditEntityType } from "@prisma/client";
+import { PrismaService } from "../../prisma/prisma.service";
 
 @Injectable()
 export class AuditService {
@@ -21,9 +21,7 @@ export class AuditService {
         entityType,
         entityId,
         action,
-        payload: diff
-          ? (diff as Prisma.InputJsonValue)
-          : Prisma.JsonNull,
+        payload: diff ? (diff as Prisma.InputJsonValue) : Prisma.JsonNull,
       },
     });
   }

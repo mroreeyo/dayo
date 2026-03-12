@@ -1,12 +1,17 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { AuditAction, AuditEntityType, MemberRole } from '@prisma/client';
-import { PrismaService } from '../../prisma/prisma.service';
-import { CalendarPolicy } from '../../libs/policies/calendar.policy';
-import { AuditService } from '../audit/audit.service';
-import { CreateCalendarDto, UpdateCalendarDto, CalendarItemDto, ListCalendarsResponseDto } from './calendars.dto';
-import { OkRevisionResponseDto } from '../../common/dto/ok-revision.dto';
-import { RealtimeService } from '../realtime/realtime.service';
-import { RT_EVENTS } from '../../libs/realtime/events';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { AuditAction, AuditEntityType, MemberRole } from "@prisma/client";
+import { PrismaService } from "../../prisma/prisma.service";
+import { CalendarPolicy } from "../../libs/policies/calendar.policy";
+import { AuditService } from "../audit/audit.service";
+import {
+  CreateCalendarDto,
+  UpdateCalendarDto,
+  CalendarItemDto,
+  ListCalendarsResponseDto,
+} from "./calendars.dto";
+import { OkRevisionResponseDto } from "../../common/dto/ok-revision.dto";
+import { RealtimeService } from "../realtime/realtime.service";
+import { RT_EVENTS } from "../../libs/realtime/events";
 
 @Injectable()
 export class CalendarsService {
@@ -34,7 +39,10 @@ export class CalendarsService {
     return { items };
   }
 
-  async createCalendar(userId: string, dto: CreateCalendarDto): Promise<CalendarItemDto> {
+  async createCalendar(
+    userId: string,
+    dto: CreateCalendarDto,
+  ): Promise<CalendarItemDto> {
     const result = await this.prisma.$transaction(async (tx) => {
       const calendar = await tx.calendar.create({
         data: {
@@ -98,7 +106,7 @@ export class CalendarsService {
     });
 
     if (!member) {
-      throw new NotFoundException('Member not found');
+      throw new NotFoundException("Member not found");
     }
 
     const diff: Record<string, unknown> = {};

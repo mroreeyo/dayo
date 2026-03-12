@@ -1,16 +1,16 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ConflictException, GoneException, NotFoundException } from '@nestjs/common';
-import { AuditAction, AuditEntityType, MemberRole } from '@prisma/client';
-import { InvitesService } from '../invites/invites.service';
-import { MembersService } from '../members/members.service';
-import { EventsService } from '../events/events.service';
-import { PrismaService } from '../../prisma/prisma.service';
-import { CalendarPolicy } from '../../libs/policies/calendar.policy';
-import { AuditService } from '../audit/audit.service';
-import { RealtimeService } from '../realtime/realtime.service';
-import { RecurrenceService } from '../events/recurrence.service';
-import { QueuesService } from '../queues/queues.service';
-import { RT_EVENTS } from '../../libs/realtime/events';
+import { Test, TestingModule } from "@nestjs/testing";
+import { ConflictException } from "@nestjs/common";
+import { AuditAction, AuditEntityType, MemberRole } from "@prisma/client";
+import { InvitesService } from "../invites/invites.service";
+import { MembersService } from "../members/members.service";
+import { EventsService } from "../events/events.service";
+import { PrismaService } from "../../prisma/prisma.service";
+import { CalendarPolicy } from "../../libs/policies/calendar.policy";
+import { AuditService } from "../audit/audit.service";
+import { RealtimeService } from "../realtime/realtime.service";
+import { RecurrenceService } from "../events/recurrence.service";
+import { QueuesService } from "../queues/queues.service";
+import { RT_EVENTS } from "../../libs/realtime/events";
 
 const mockPrisma = {
   invite: {
@@ -49,16 +49,15 @@ const mockQueues = {
   cancelReminder: jest.fn().mockResolvedValue(undefined),
 };
 
-describe('Calendar Lifecycle — E2E-style Integration', () => {
+describe("Calendar Lifecycle — E2E-style Integration", () => {
   let invitesService: InvitesService;
   let membersService: MembersService;
   let eventsService: EventsService;
-  let realtimeService: RealtimeService;
 
-  const ownerId = 'user-owner';
-  const adminId = 'user-admin';
-  const newUserId = 'user-new';
-  const calendarId = 'cal-1';
+  const ownerId = "user-owner";
+  const adminId = "user-admin";
+  const newUserId = "user-new";
+  const calendarId = "cal-1";
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -80,15 +79,14 @@ describe('Calendar Lifecycle — E2E-style Integration', () => {
     invitesService = module.get<InvitesService>(InvitesService);
     membersService = module.get<MembersService>(MembersService);
     eventsService = module.get<EventsService>(EventsService);
-    realtimeService = module.get<RealtimeService>(RealtimeService);
   });
 
-  describe('Calendar join → member appears', () => {
-    it('creates member with MEMBER role when joining via invite code', async () => {
+  describe("Calendar join → member appears", () => {
+    it("creates member with MEMBER role when joining via invite code", async () => {
       const inviteRecord = {
-        id: 'inv-1',
+        id: "inv-1",
         calendarId,
-        code: 'valid-code-abc',
+        code: "valid-code-abc",
         expiresAt: null,
         maxUses: null,
         useCount: 0,
@@ -96,7 +94,7 @@ describe('Calendar Lifecycle — E2E-style Integration', () => {
       };
 
       const createdMember = {
-        id: 'mem-new',
+        id: "mem-new",
         calendarId,
         userId: newUserId,
         role: MemberRole.MEMBER,
@@ -106,13 +104,21 @@ describe('Calendar Lifecycle — E2E-style Integration', () => {
 
       mockPrisma.invite.findUnique.mockResolvedValue(inviteRecord);
       mockPrisma.calendarMember.findUnique.mockResolvedValue(null);
-      mockPrisma.$transaction.mockImplementation(async (fn: (tx: typeof mockPrisma) => Promise<unknown>) => {
-        mockPrisma.invite.update.mockResolvedValue({ ...inviteRecord, useCount: 1 });
-        mockPrisma.calendarMember.create.mockResolvedValue(createdMember);
-        return fn(mockPrisma);
-      });
+      mockPrisma.$transaction.mockImplementation(
+        async (fn: (tx: typeof mockPrisma) => Promise<unknown>) => {
+          mockPrisma.invite.update.mockResolvedValue({
+            ...inviteRecord,
+            useCount: 1,
+          });
+          mockPrisma.calendarMember.create.mockResolvedValue(createdMember);
+          return fn(mockPrisma);
+        },
+      );
 
-      const result = await invitesService.joinByCode(newUserId, 'valid-code-abc');
+      const result = await invitesService.joinByCode(
+        newUserId,
+        "valid-code-abc",
+      );
 
       expect(result.calendarId).toBe(calendarId);
       expect(mockPrisma.calendarMember.create).toHaveBeenCalledWith(
@@ -126,11 +132,11 @@ describe('Calendar Lifecycle — E2E-style Integration', () => {
       );
     });
 
-    it('records JOIN audit log on invite accept', async () => {
+    it("records JOIN audit log on invite accept", async () => {
       const inviteRecord = {
-        id: 'inv-1',
+        id: "inv-1",
         calendarId,
-        code: 'audit-code',
+        code: "audit-code",
         expiresAt: null,
         maxUses: null,
         useCount: 0,
@@ -138,7 +144,7 @@ describe('Calendar Lifecycle — E2E-style Integration', () => {
       };
 
       const createdMember = {
-        id: 'mem-audit',
+        id: "mem-audit",
         calendarId,
         userId: newUserId,
         role: MemberRole.MEMBER,
@@ -148,29 +154,34 @@ describe('Calendar Lifecycle — E2E-style Integration', () => {
 
       mockPrisma.invite.findUnique.mockResolvedValue(inviteRecord);
       mockPrisma.calendarMember.findUnique.mockResolvedValue(null);
-      mockPrisma.$transaction.mockImplementation(async (fn: (tx: typeof mockPrisma) => Promise<unknown>) => {
-        mockPrisma.invite.update.mockResolvedValue({ ...inviteRecord, useCount: 1 });
-        mockPrisma.calendarMember.create.mockResolvedValue(createdMember);
-        return fn(mockPrisma);
-      });
+      mockPrisma.$transaction.mockImplementation(
+        async (fn: (tx: typeof mockPrisma) => Promise<unknown>) => {
+          mockPrisma.invite.update.mockResolvedValue({
+            ...inviteRecord,
+            useCount: 1,
+          });
+          mockPrisma.calendarMember.create.mockResolvedValue(createdMember);
+          return fn(mockPrisma);
+        },
+      );
 
-      await invitesService.joinByCode(newUserId, 'audit-code');
+      await invitesService.joinByCode(newUserId, "audit-code");
 
       expect(mockAudit.record).toHaveBeenCalledWith(
         newUserId,
         calendarId,
         AuditEntityType.MEMBER,
-        'mem-audit',
+        "mem-audit",
         AuditAction.JOIN,
-        { inviteCode: 'audit-code' },
+        { inviteCode: "audit-code" },
       );
     });
 
-    it('broadcasts MEMBER_JOINED on successful join', async () => {
+    it("broadcasts MEMBER_JOINED on successful join", async () => {
       const inviteRecord = {
-        id: 'inv-1',
+        id: "inv-1",
         calendarId,
-        code: 'broadcast-code',
+        code: "broadcast-code",
         expiresAt: null,
         maxUses: null,
         useCount: 0,
@@ -178,7 +189,7 @@ describe('Calendar Lifecycle — E2E-style Integration', () => {
       };
 
       const createdMember = {
-        id: 'mem-bc',
+        id: "mem-bc",
         calendarId,
         userId: newUserId,
         role: MemberRole.MEMBER,
@@ -188,75 +199,84 @@ describe('Calendar Lifecycle — E2E-style Integration', () => {
 
       mockPrisma.invite.findUnique.mockResolvedValue(inviteRecord);
       mockPrisma.calendarMember.findUnique.mockResolvedValue(null);
-      mockPrisma.$transaction.mockImplementation(async (fn: (tx: typeof mockPrisma) => Promise<unknown>) => {
-        mockPrisma.invite.update.mockResolvedValue({ ...inviteRecord, useCount: 1 });
-        mockPrisma.calendarMember.create.mockResolvedValue(createdMember);
-        return fn(mockPrisma);
-      });
+      mockPrisma.$transaction.mockImplementation(
+        async (fn: (tx: typeof mockPrisma) => Promise<unknown>) => {
+          mockPrisma.invite.update.mockResolvedValue({
+            ...inviteRecord,
+            useCount: 1,
+          });
+          mockPrisma.calendarMember.create.mockResolvedValue(createdMember);
+          return fn(mockPrisma);
+        },
+      );
 
-      await invitesService.joinByCode(newUserId, 'broadcast-code');
+      await invitesService.joinByCode(newUserId, "broadcast-code");
 
       expect(mockRealtime.broadcast).toHaveBeenCalledWith(
         calendarId,
         RT_EVENTS.MEMBER_JOINED,
         expect.objectContaining({
           calendarId,
-          revision: '201',
+          revision: "201",
         }),
       );
     });
 
-    it('rejects already-member with ConflictException', async () => {
+    it("rejects already-member with ConflictException", async () => {
       mockPrisma.invite.findUnique.mockResolvedValue({
-        id: 'inv-1',
+        id: "inv-1",
         calendarId,
-        code: 'dup-code',
+        code: "dup-code",
         expiresAt: null,
         maxUses: null,
         useCount: 0,
       });
       mockPrisma.calendarMember.findUnique.mockResolvedValue({
-        id: 'mem-existing',
+        id: "mem-existing",
         calendarId,
         userId: newUserId,
         role: MemberRole.MEMBER,
       });
 
       await expect(
-        invitesService.joinByCode(newUserId, 'dup-code'),
+        invitesService.joinByCode(newUserId, "dup-code"),
       ).rejects.toThrow(ConflictException);
     });
   });
 
-  describe('Member removal', () => {
-    it('removes member and returns ok response', async () => {
+  describe("Member removal", () => {
+    it("removes member and returns ok response", async () => {
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.ADMIN });
       mockPrisma.calendarMember.findUnique.mockResolvedValue({
-        id: 'mem-target',
+        id: "mem-target",
         calendarId,
         userId: newUserId,
         role: MemberRole.MEMBER,
       });
       mockPrisma.calendarMember.delete.mockResolvedValue({
-        id: 'mem-target',
+        id: "mem-target",
         revision: BigInt(300),
       });
 
-      const result = await membersService.removeMember(adminId, calendarId, newUserId);
+      const result = await membersService.removeMember(
+        adminId,
+        calendarId,
+        newUserId,
+      );
 
-      expect(result).toEqual({ ok: true, revision: '300' });
+      expect(result).toEqual({ ok: true, revision: "300" });
     });
 
-    it('broadcasts MEMBER_LEFT to calendar room', async () => {
+    it("broadcasts MEMBER_LEFT to calendar room", async () => {
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.ADMIN });
       mockPrisma.calendarMember.findUnique.mockResolvedValue({
-        id: 'mem-target',
+        id: "mem-target",
         calendarId,
         userId: newUserId,
         role: MemberRole.MEMBER,
       });
       mockPrisma.calendarMember.delete.mockResolvedValue({
-        id: 'mem-target',
+        id: "mem-target",
         revision: BigInt(300),
       });
 
@@ -267,22 +287,22 @@ describe('Calendar Lifecycle — E2E-style Integration', () => {
         RT_EVENTS.MEMBER_LEFT,
         expect.objectContaining({
           calendarId,
-          revision: '300',
+          revision: "300",
           at: expect.any(String),
         }),
       );
     });
 
-    it('broadcasts CALENDAR_REMOVED to removed user', async () => {
+    it("broadcasts CALENDAR_REMOVED to removed user", async () => {
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.ADMIN });
       mockPrisma.calendarMember.findUnique.mockResolvedValue({
-        id: 'mem-target',
+        id: "mem-target",
         calendarId,
         userId: newUserId,
         role: MemberRole.MEMBER,
       });
       mockPrisma.calendarMember.delete.mockResolvedValue({
-        id: 'mem-target',
+        id: "mem-target",
         revision: BigInt(300),
       });
 
@@ -293,22 +313,22 @@ describe('Calendar Lifecycle — E2E-style Integration', () => {
         RT_EVENTS.CALENDAR_REMOVED,
         expect.objectContaining({
           calendarId,
-          revision: '300',
+          revision: "300",
           at: expect.any(String),
         }),
       );
     });
 
-    it('records audit log on member removal', async () => {
+    it("records audit log on member removal", async () => {
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.ADMIN });
       mockPrisma.calendarMember.findUnique.mockResolvedValue({
-        id: 'mem-target',
+        id: "mem-target",
         calendarId,
         userId: newUserId,
         role: MemberRole.MEMBER,
       });
       mockPrisma.calendarMember.delete.mockResolvedValue({
-        id: 'mem-target',
+        id: "mem-target",
         revision: BigInt(300),
       });
 
@@ -318,15 +338,15 @@ describe('Calendar Lifecycle — E2E-style Integration', () => {
         adminId,
         calendarId,
         AuditEntityType.MEMBER,
-        'mem-target',
+        "mem-target",
         AuditAction.DELETE,
         { targetUserId: newUserId },
       );
     });
   });
 
-  describe('Realtime event flow', () => {
-    it('RealtimeService.broadcast() emits to correct room via server', () => {
+  describe("Realtime event flow", () => {
+    it("RealtimeService.broadcast() emits to correct room via server", () => {
       const realRealtimeService = new RealtimeService(mockPrisma as never);
       const mockEmit = jest.fn();
       const mockTo = jest.fn().mockReturnValue({ emit: mockEmit });
@@ -336,30 +356,34 @@ describe('Calendar Lifecycle — E2E-style Integration', () => {
 
       const payload = {
         calendarId,
-        revision: '500',
-        at: '2026-03-01T00:00:00.000Z',
-        entityId: 'evt-1',
+        revision: "500",
+        at: "2026-03-01T00:00:00.000Z",
+        entityId: "evt-1",
       };
 
-      realRealtimeService.broadcast(calendarId, RT_EVENTS.EVENT_CREATED, payload);
+      realRealtimeService.broadcast(
+        calendarId,
+        RT_EVENTS.EVENT_CREATED,
+        payload,
+      );
 
       expect(mockTo).toHaveBeenCalledWith(`calendar:${calendarId}`);
       expect(mockEmit).toHaveBeenCalledWith(RT_EVENTS.EVENT_CREATED, payload);
     });
 
-    it('event creation triggers broadcast with EVENT_CREATED', async () => {
+    it("event creation triggers broadcast with EVENT_CREATED", async () => {
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.MEMBER });
       mockPrisma.event.create.mockResolvedValue({
-        id: 'evt-new',
+        id: "evt-new",
         calendarId,
         creatorId: ownerId,
-        title: 'New Event',
+        title: "New Event",
         note: null,
         location: null,
-        timezone: 'Asia/Seoul',
+        timezone: "Asia/Seoul",
         allDay: false,
-        startAtUtc: new Date('2026-03-01T09:00:00Z'),
-        endAtUtc: new Date('2026-03-01T10:00:00Z'),
+        startAtUtc: new Date("2026-03-01T09:00:00Z"),
+        endAtUtc: new Date("2026-03-01T10:00:00Z"),
         startDate: null,
         endDate: null,
         color: null,
@@ -371,10 +395,10 @@ describe('Calendar Lifecycle — E2E-style Integration', () => {
 
       await eventsService.createEvent(ownerId, {
         calendarId,
-        title: 'New Event',
-        timezone: 'Asia/Seoul',
-        startAtUtc: '2026-03-01T09:00:00Z',
-        endAtUtc: '2026-03-01T10:00:00Z',
+        title: "New Event",
+        timezone: "Asia/Seoul",
+        startAtUtc: "2026-03-01T09:00:00Z",
+        endAtUtc: "2026-03-01T10:00:00Z",
         startDate: undefined as unknown as string,
         endDate: undefined as unknown as string,
       });
@@ -384,26 +408,26 @@ describe('Calendar Lifecycle — E2E-style Integration', () => {
         RT_EVENTS.EVENT_CREATED,
         expect.objectContaining({
           calendarId,
-          revision: '500',
+          revision: "500",
           at: expect.any(String),
-          entityId: 'evt-new',
+          entityId: "evt-new",
         }),
       );
     });
 
-    it('broadcast payload has correct shape: { calendarId, revision, at, entityId }', async () => {
+    it("broadcast payload has correct shape: { calendarId, revision, at, entityId }", async () => {
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.MEMBER });
       mockPrisma.event.create.mockResolvedValue({
-        id: 'evt-shape',
+        id: "evt-shape",
         calendarId,
         creatorId: ownerId,
-        title: 'Shape Test',
+        title: "Shape Test",
         note: null,
         location: null,
-        timezone: 'UTC',
+        timezone: "UTC",
         allDay: false,
-        startAtUtc: new Date('2026-03-01T09:00:00Z'),
-        endAtUtc: new Date('2026-03-01T10:00:00Z'),
+        startAtUtc: new Date("2026-03-01T09:00:00Z"),
+        endAtUtc: new Date("2026-03-01T10:00:00Z"),
         startDate: null,
         endDate: null,
         color: null,
@@ -415,10 +439,10 @@ describe('Calendar Lifecycle — E2E-style Integration', () => {
 
       await eventsService.createEvent(ownerId, {
         calendarId,
-        title: 'Shape Test',
-        timezone: 'UTC',
-        startAtUtc: '2026-03-01T09:00:00Z',
-        endAtUtc: '2026-03-01T10:00:00Z',
+        title: "Shape Test",
+        timezone: "UTC",
+        startAtUtc: "2026-03-01T09:00:00Z",
+        endAtUtc: "2026-03-01T10:00:00Z",
         startDate: undefined as unknown as string,
         endDate: undefined as unknown as string,
       });
@@ -426,25 +450,25 @@ describe('Calendar Lifecycle — E2E-style Integration', () => {
       const broadcastCall = mockRealtime.broadcast.mock.calls[0];
       const payload = broadcastCall[2];
 
-      expect(payload).toHaveProperty('calendarId', calendarId);
-      expect(payload).toHaveProperty('revision', '600');
-      expect(payload).toHaveProperty('at');
-      expect(payload).toHaveProperty('entityId', 'evt-shape');
+      expect(payload).toHaveProperty("calendarId", calendarId);
+      expect(payload).toHaveProperty("revision", "600");
+      expect(payload).toHaveProperty("at");
+      expect(payload).toHaveProperty("entityId", "evt-shape");
       expect(new Date(payload.at).toISOString()).toBe(payload.at);
     });
 
-    it('event deletion triggers broadcast with EVENT_DELETED', async () => {
+    it("event deletion triggers broadcast with EVENT_DELETED", async () => {
       mockPrisma.event.findFirst.mockResolvedValue({
-        id: 'evt-del',
+        id: "evt-del",
         calendarId,
         creatorId: ownerId,
-        title: 'To Delete',
+        title: "To Delete",
         note: null,
         location: null,
-        timezone: 'UTC',
+        timezone: "UTC",
         allDay: false,
-        startAtUtc: new Date('2026-03-01T09:00:00Z'),
-        endAtUtc: new Date('2026-03-01T10:00:00Z'),
+        startAtUtc: new Date("2026-03-01T09:00:00Z"),
+        endAtUtc: new Date("2026-03-01T10:00:00Z"),
         startDate: null,
         endDate: null,
         color: null,
@@ -455,21 +479,21 @@ describe('Calendar Lifecycle — E2E-style Integration', () => {
       });
       mockPolicy.authorize.mockResolvedValue({ role: MemberRole.MEMBER });
       mockPrisma.event.update.mockResolvedValue({
-        id: 'evt-del',
+        id: "evt-del",
         calendarId,
         revision: BigInt(701),
         deletedAt: new Date(),
       });
 
-      await eventsService.deleteEvent(ownerId, 'evt-del');
+      await eventsService.deleteEvent(ownerId, "evt-del");
 
       expect(mockRealtime.broadcast).toHaveBeenCalledWith(
         calendarId,
         RT_EVENTS.EVENT_DELETED,
         expect.objectContaining({
           calendarId,
-          revision: '701',
-          entityId: 'evt-del',
+          revision: "701",
+          entityId: "evt-del",
         }),
       );
     });

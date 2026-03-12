@@ -1,14 +1,13 @@
 import React, { useEffect } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { Slot, useRouter, useSegments } from 'expo-router';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { ThemeProvider } from './theme/ThemeProvider';
-import { RootNavigator } from './navigation/RootNavigator';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { queryClient } from './api/query-client';
-import { useAuthStore } from './store/auth.store';
-import { connectSocket, disconnectSocket, getSocket } from './realtime/socket';
-import { setupOfflineQueueFlush } from './utils/offline-flush';
+import { ThemeProvider } from '../src/theme/ThemeProvider';
+import { queryClient } from '../src/api/query-client';
+import { useAuthStore } from '../src/store/auth.store';
+import { connectSocket, disconnectSocket, getSocket } from '../src/realtime/socket';
+import { setupOfflineQueueFlush } from '../src/utils/offline-flush';
 
 function useSocketLifecycle() {
   const accessToken = useAuthStore((s) => s.accessToken);
@@ -38,8 +37,25 @@ function useSocketLifecycle() {
   }, [accessToken]);
 }
 
-export default function App() {
+function useProtectedRoute() {
+  const accessToken = useAuthStore((s) => s.accessToken);
+  const segments = useSegments();
+  const router = useRouter();
+
+  useEffect(() => {
+    const inAuthGroup = segments[0] === '(auth)';
+
+    if (!accessToken && !inAuthGroup) {
+      router.replace('/(auth)/login');
+    } else if (accessToken && inAuthGroup) {
+      router.replace('/(main)');
+    }
+  }, [accessToken, segments, router]);
+}
+
+export default function RootLayout() {
   useSocketLifecycle();
+  useProtectedRoute();
 
   useEffect(() => {
     const unsubscribe = setupOfflineQueueFlush();
@@ -50,9 +66,7 @@ export default function App() {
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
-          <NavigationContainer>
-            <RootNavigator />
-          </NavigationContainer>
+          <Slot />
         </ThemeProvider>
       </QueryClientProvider>
     </SafeAreaProvider>

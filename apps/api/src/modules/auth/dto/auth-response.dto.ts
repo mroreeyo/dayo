@@ -1,21 +1,21 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty } from "@nestjs/swagger";
 
 export class AuthTokensDto {
-  @ApiProperty({ example: 'eyJhbGciOiJIUzI1NiIs...' })
+  @ApiProperty({ example: "eyJhbGciOiJIUzI1NiIs..." })
   accessToken!: string;
 
-  @ApiProperty({ example: 'eyJhbGciOiJIUzI1NiIs...' })
+  @ApiProperty({ example: "eyJhbGciOiJIUzI1NiIs..." })
   refreshToken!: string;
 }
 
 export class UserProfileDto {
-  @ApiProperty({ format: 'uuid' })
+  @ApiProperty({ format: "uuid" })
   id!: string;
 
-  @ApiProperty({ example: 'user@example.com' })
+  @ApiProperty({ example: "user@example.com" })
   email!: string;
 
-  @ApiProperty({ example: 'Alice' })
+  @ApiProperty({ example: "Alice" })
   nickname!: string;
 }
 

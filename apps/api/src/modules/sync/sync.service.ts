@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common';
-import { MemberRole } from '@prisma/client';
-import { PrismaService } from '../../prisma/prisma.service';
-import { CalendarPolicy } from '../../libs/policies/calendar.policy';
-import { SyncResponseDto } from './sync.dto';
+import { Injectable } from "@nestjs/common";
+import { MemberRole } from "@prisma/client";
+import { PrismaService } from "../../prisma/prisma.service";
+import { CalendarPolicy } from "../../libs/policies/calendar.policy";
+import { SyncResponseDto } from "./sync.dto";
 
 @Injectable()
 export class SyncService {
@@ -11,18 +11,20 @@ export class SyncService {
     private readonly policy: CalendarPolicy,
   ) {}
 
-  private serializeEntity(
-    entity: { id: string; revision: bigint; [key: string]: unknown },
-  ): { id: string; revision: string; [key: string]: unknown } {
+  private serializeEntity(entity: {
+    id: string;
+    revision: bigint;
+    [key: string]: unknown;
+  }): { id: string; revision: string; [key: string]: unknown } {
     const result: { id: string; revision: string; [key: string]: unknown } = {
       id: entity.id,
       revision: entity.revision.toString(),
     };
     const raw = entity as Record<string, unknown>;
     for (const key of Object.keys(raw)) {
-      if (key === 'id' || key === 'revision') continue;
+      if (key === "id" || key === "revision") continue;
       const val = raw[key];
-      if (typeof val === 'bigint') {
+      if (typeof val === "bigint") {
         result[key] = val.toString();
       } else if (val instanceof Date) {
         result[key] = val.toISOString();
@@ -61,7 +63,9 @@ export class SyncService {
           calendarId,
           revision: { gt: sinceBig, lte: snapshot },
         },
-        include: { user: { select: { id: true, email: true, nickname: true } } },
+        include: {
+          user: { select: { id: true, email: true, nickname: true } },
+        },
       }),
       this.prisma.invite.findMany({
         where: {

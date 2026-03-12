@@ -1,10 +1,14 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
-import { AuditAction, AuditEntityType, MemberRole } from '@prisma/client';
-import { PrismaService } from '../../prisma/prisma.service';
-import { CalendarPolicy } from '../../libs/policies/calendar.policy';
-import { AuditService } from '../audit/audit.service';
-import { OptimisticLockConflictException } from '../../common/errors/conflict.exception';
-import { OkRevisionResponseDto } from '../../common/dto/ok-revision.dto';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from "@nestjs/common";
+import { AuditAction, AuditEntityType, MemberRole } from "@prisma/client";
+import { PrismaService } from "../../prisma/prisma.service";
+import { CalendarPolicy } from "../../libs/policies/calendar.policy";
+import { AuditService } from "../audit/audit.service";
+import { OptimisticLockConflictException } from "../../common/errors/conflict.exception";
+import { OkRevisionResponseDto } from "../../common/dto/ok-revision.dto";
 import {
   CreateEventDto,
   UpdateEventDto,
@@ -12,11 +16,11 @@ import {
   EventDto,
   ListEventsResponseDto,
   OccurrenceDto,
-} from './events.dto';
-import { RealtimeService } from '../realtime/realtime.service';
-import { RT_EVENTS } from '../../libs/realtime/events';
-import { RecurrenceService } from './recurrence.service';
-import { QueuesService } from '../queues/queues.service';
+} from "./events.dto";
+import { RealtimeService } from "../realtime/realtime.service";
+import { RT_EVENTS } from "../../libs/realtime/events";
+import { RecurrenceService } from "./recurrence.service";
+import { QueuesService } from "../queues/queues.service";
 
 @Injectable()
 export class EventsService {
@@ -29,7 +33,10 @@ export class EventsService {
     private readonly queues: QueuesService,
   ) {}
 
-  async listEvents(userId: string, q: EventsQueryDto): Promise<ListEventsResponseDto> {
+  async listEvents(
+    userId: string,
+    q: EventsQueryDto,
+  ): Promise<ListEventsResponseDto> {
     await this.policy.authorize(userId, q.calendarId, MemberRole.MEMBER);
 
     const from = new Date(q.from);
@@ -44,7 +51,7 @@ export class EventsService {
           { allDay: true, startDate: { lt: to }, endDate: { gt: from } },
         ],
       },
-      orderBy: [{ allDay: 'asc' }, { startAtUtc: 'asc' }, { startDate: 'asc' }],
+      orderBy: [{ allDay: "asc" }, { startAtUtc: "asc" }, { startDate: "asc" }],
     });
 
     const items: EventDto[] = events.map((e) => this.toEventDto(e));
@@ -73,7 +80,10 @@ export class EventsService {
         exceptions: m.exceptions,
       }));
 
-    const rawOccurrences = this.recurrence.expandMany(expandInput, { from, to });
+    const rawOccurrences = this.recurrence.expandMany(expandInput, {
+      from,
+      to,
+    });
 
     const occurrences: OccurrenceDto[] = rawOccurrences.map((o) => ({
       recurringEventId: o.recurringEventId,
@@ -95,7 +105,10 @@ export class EventsService {
     return { items, occurrences };
   }
 
-  async createEvent(userId: string, dto: CreateEventDto): Promise<OkRevisionResponseDto> {
+  async createEvent(
+    userId: string,
+    dto: CreateEventDto,
+  ): Promise<OkRevisionResponseDto> {
     await this.policy.authorize(userId, dto.calendarId, MemberRole.MEMBER);
 
     this.validateTimeFields(dto);
@@ -135,7 +148,9 @@ export class EventsService {
     });
 
     if (event.remindMinutes != null && event.startAtUtc) {
-      const fireAt = new Date(event.startAtUtc.getTime() - event.remindMinutes * 60_000);
+      const fireAt = new Date(
+        event.startAtUtc.getTime() - event.remindMinutes * 60_000,
+      );
       await this.queues.enqueueReminder({
         eventId: event.id,
         userId,
@@ -158,7 +173,7 @@ export class EventsService {
     });
 
     if (!existing) {
-      throw new NotFoundException('Event not found');
+      throw new NotFoundException("Event not found");
     }
 
     await this.policy.authorize(userId, existing.calendarId, MemberRole.MEMBER);
@@ -171,26 +186,35 @@ export class EventsService {
     if (fields.location !== undefined) data.location = fields.location;
     if (fields.timezone !== undefined) data.timezone = fields.timezone;
     if (fields.color !== undefined) data.color = fields.color;
-    if (fields.remindMinutes !== undefined) data.remindMinutes = fields.remindMinutes;
+    if (fields.remindMinutes !== undefined)
+      data.remindMinutes = fields.remindMinutes;
 
     if (fields.allDay !== undefined) {
       data.allDay = fields.allDay;
     }
 
-    const resolvedAllDay = (fields.allDay !== undefined ? fields.allDay : existing.allDay);
+    const resolvedAllDay =
+      fields.allDay !== undefined ? fields.allDay : existing.allDay;
 
-    if (fields.startAtUtc !== undefined) data.startAtUtc = new Date(fields.startAtUtc);
-    if (fields.endAtUtc !== undefined) data.endAtUtc = new Date(fields.endAtUtc);
-    if (fields.startDate !== undefined) data.startDate = new Date(fields.startDate);
+    if (fields.startAtUtc !== undefined)
+      data.startAtUtc = new Date(fields.startAtUtc);
+    if (fields.endAtUtc !== undefined)
+      data.endAtUtc = new Date(fields.endAtUtc);
+    if (fields.startDate !== undefined)
+      data.startDate = new Date(fields.startDate);
     if (fields.endDate !== undefined) data.endDate = new Date(fields.endDate);
 
     if (resolvedAllDay) {
       if (data.startAtUtc !== undefined || data.endAtUtc !== undefined) {
-        throw new BadRequestException('All-day events must not have startAtUtc/endAtUtc');
+        throw new BadRequestException(
+          "All-day events must not have startAtUtc/endAtUtc",
+        );
       }
     } else {
       if (data.startDate !== undefined || data.endDate !== undefined) {
-        throw new BadRequestException('Timed events must not have startDate/endDate');
+        throw new BadRequestException(
+          "Timed events must not have startDate/endDate",
+        );
       }
     }
 
@@ -216,7 +240,8 @@ export class EventsService {
     if (fields.timezone !== undefined) auditDiff.timezone = fields.timezone;
     if (fields.color !== undefined) auditDiff.color = fields.color;
     if (fields.allDay !== undefined) auditDiff.allDay = fields.allDay;
-    if (fields.startAtUtc !== undefined) auditDiff.startAtUtc = fields.startAtUtc;
+    if (fields.startAtUtc !== undefined)
+      auditDiff.startAtUtc = fields.startAtUtc;
     if (fields.endAtUtc !== undefined) auditDiff.endAtUtc = fields.endAtUtc;
     if (fields.startDate !== undefined) auditDiff.startDate = fields.startDate;
     if (fields.endDate !== undefined) auditDiff.endDate = fields.endDate;
@@ -239,7 +264,9 @@ export class EventsService {
 
     await this.queues.cancelReminder(eventId);
     if (updated.remindMinutes != null && updated.startAtUtc) {
-      const fireAt = new Date(updated.startAtUtc.getTime() - updated.remindMinutes * 60_000);
+      const fireAt = new Date(
+        updated.startAtUtc.getTime() - updated.remindMinutes * 60_000,
+      );
       await this.queues.enqueueReminder({
         eventId,
         userId,
@@ -252,13 +279,16 @@ export class EventsService {
     return { ok: true, revision: updated.revision.toString() };
   }
 
-  async deleteEvent(userId: string, eventId: string): Promise<OkRevisionResponseDto> {
+  async deleteEvent(
+    userId: string,
+    eventId: string,
+  ): Promise<OkRevisionResponseDto> {
     const existing = await this.prisma.event.findFirst({
       where: { id: eventId, deletedAt: null },
     });
 
     if (!existing) {
-      throw new NotFoundException('Event not found');
+      throw new NotFoundException("Event not found");
     }
 
     await this.policy.authorize(userId, existing.calendarId, MemberRole.MEMBER);
@@ -291,23 +321,31 @@ export class EventsService {
   private validateTimeFields(dto: CreateEventDto): void {
     if (dto.allDay) {
       if (dto.startAtUtc || dto.endAtUtc) {
-        throw new BadRequestException('All-day events must not have startAtUtc/endAtUtc');
+        throw new BadRequestException(
+          "All-day events must not have startAtUtc/endAtUtc",
+        );
       }
       if (!dto.startDate || !dto.endDate) {
-        throw new BadRequestException('All-day events require startDate and endDate');
+        throw new BadRequestException(
+          "All-day events require startDate and endDate",
+        );
       }
       if (dto.endDate <= dto.startDate) {
-        throw new BadRequestException('endDate must be after startDate');
+        throw new BadRequestException("endDate must be after startDate");
       }
     } else {
       if (dto.startDate || dto.endDate) {
-        throw new BadRequestException('Timed events must not have startDate/endDate');
+        throw new BadRequestException(
+          "Timed events must not have startDate/endDate",
+        );
       }
       if (!dto.startAtUtc || !dto.endAtUtc) {
-        throw new BadRequestException('Timed events require startAtUtc and endAtUtc');
+        throw new BadRequestException(
+          "Timed events require startAtUtc and endAtUtc",
+        );
       }
       if (new Date(dto.endAtUtc) <= new Date(dto.startAtUtc)) {
-        throw new BadRequestException('endAtUtc must be after startAtUtc');
+        throw new BadRequestException("endAtUtc must be after startAtUtc");
       }
     }
   }

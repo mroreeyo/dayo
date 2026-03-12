@@ -2,17 +2,17 @@ import {
   ConflictException,
   Injectable,
   UnauthorizedException,
-} from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
-import { PrismaService } from '../../prisma/prisma.service';
-import { JwtPayload } from '../../common/auth/types';
-import { GoogleProfile } from '../../common/auth/google.strategy';
-import { RegisterDto, LoginDto, AuthResponseDto } from './dto';
+} from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
+import * as bcrypt from "bcrypt";
+import { PrismaService } from "../../prisma/prisma.service";
+import { JwtPayload } from "../../common/auth/types";
+import { GoogleProfile } from "../../common/auth/google.strategy";
+import { RegisterDto, LoginDto, AuthResponseDto } from "./dto";
 
 const BCRYPT_ROUNDS = 12;
-const ACCESS_TOKEN_EXPIRY = '15m';
-const REFRESH_TOKEN_EXPIRY = '7d';
+const ACCESS_TOKEN_EXPIRY = "15m";
+const REFRESH_TOKEN_EXPIRY = "7d";
 
 @Injectable()
 export class AuthService {
@@ -26,7 +26,7 @@ export class AuthService {
       where: { email: dto.email },
     });
     if (existing) {
-      throw new ConflictException('Email already registered');
+      throw new ConflictException("Email already registered");
     }
 
     const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
@@ -52,12 +52,12 @@ export class AuthService {
       where: { email: dto.email },
     });
     if (!user?.passwordHash) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException("Invalid credentials");
     }
 
     const valid = await bcrypt.compare(dto.password, user.passwordHash);
     if (!valid) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException("Invalid credentials");
     }
 
     const tokens = this.issueTokens({ sub: user.id, email: user.email });
@@ -73,14 +73,14 @@ export class AuthService {
     try {
       payload = this.jwt.verify<JwtPayload>(refreshToken);
     } catch {
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new UnauthorizedException("Invalid refresh token");
     }
 
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
     });
     if (!user) {
-      throw new UnauthorizedException('User not found');
+      throw new UnauthorizedException("User not found");
     }
 
     const accessToken = this.jwt.sign(

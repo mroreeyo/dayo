@@ -1,5 +1,5 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { Type } from "class-transformer";
 import {
   IsBoolean,
   IsInt,
@@ -9,24 +9,33 @@ import {
   MaxLength,
   Min,
   ValidateIf,
-} from 'class-validator';
+} from "class-validator";
 
 // ─── Query ──────────────────────────────────────────────────
 
 export class EventsQueryDto {
-  @ApiProperty({ format: 'uuid' })
+  @ApiProperty({ format: "uuid" })
   @IsString()
   calendarId!: string;
 
-  @ApiProperty({ description: 'range start (UTC ISO)', example: '2026-02-01T00:00:00Z' })
+  @ApiProperty({
+    description: "range start (UTC ISO)",
+    example: "2026-02-01T00:00:00Z",
+  })
   @IsISO8601()
   from!: string;
 
-  @ApiProperty({ description: 'range end (UTC ISO)', example: '2026-03-01T00:00:00Z' })
+  @ApiProperty({
+    description: "range end (UTC ISO)",
+    example: "2026-03-01T00:00:00Z",
+  })
   @IsISO8601()
   to!: string;
 
-  @ApiPropertyOptional({ description: 'If true, server returns occurrences for recurring masters', example: true })
+  @ApiPropertyOptional({
+    description: "If true, server returns occurrences for recurring masters",
+    example: true,
+  })
   @IsOptional()
   @IsBoolean()
   @Type(() => Boolean)
@@ -36,16 +45,16 @@ export class EventsQueryDto {
 // ─── Response DTOs ──────────────────────────────────────────
 
 export class EventDto {
-  @ApiProperty({ format: 'uuid' })
+  @ApiProperty({ format: "uuid" })
   id!: string;
 
-  @ApiProperty({ format: 'uuid' })
+  @ApiProperty({ format: "uuid" })
   calendarId!: string;
 
-  @ApiProperty({ format: 'uuid' })
+  @ApiProperty({ format: "uuid" })
   creatorId!: string;
 
-  @ApiProperty({ example: '회의' })
+  @ApiProperty({ example: "회의" })
   title!: string;
 
   @ApiPropertyOptional()
@@ -54,51 +63,67 @@ export class EventDto {
   @ApiPropertyOptional()
   location?: string | null;
 
-  @ApiProperty({ example: 'Asia/Seoul' })
+  @ApiProperty({ example: "Asia/Seoul" })
   timezone!: string;
 
   @ApiProperty({ example: false })
   allDay!: boolean;
 
-  @ApiPropertyOptional({ description: 'UTC ISO', example: '2026-02-26T03:00:00Z' })
+  @ApiPropertyOptional({
+    description: "UTC ISO",
+    example: "2026-02-26T03:00:00Z",
+  })
   startAtUtc?: string | null;
 
-  @ApiPropertyOptional({ description: 'UTC ISO', example: '2026-02-26T04:00:00Z' })
+  @ApiPropertyOptional({
+    description: "UTC ISO",
+    example: "2026-02-26T04:00:00Z",
+  })
   endAtUtc?: string | null;
 
-  @ApiPropertyOptional({ description: 'YYYY-MM-DD', example: '2026-02-26' })
+  @ApiPropertyOptional({ description: "YYYY-MM-DD", example: "2026-02-26" })
   startDate?: string | null;
 
-  @ApiPropertyOptional({ description: 'YYYY-MM-DD (exclusive)', example: '2026-02-27' })
+  @ApiPropertyOptional({
+    description: "YYYY-MM-DD (exclusive)",
+    example: "2026-02-27",
+  })
   endDate?: string | null;
 
-  @ApiPropertyOptional({ example: '#FFAA00', nullable: true })
+  @ApiPropertyOptional({ example: "#FFAA00", nullable: true })
   color?: string | null;
 
-  @ApiPropertyOptional({ description: 'Reminder minutes before start', example: 10, nullable: true })
+  @ApiPropertyOptional({
+    description: "Reminder minutes before start",
+    example: 10,
+    nullable: true,
+  })
   remindMinutes?: number | null;
 
   @ApiProperty({ example: 3 })
   version!: number;
 
-  @ApiProperty({ description: 'Sync cursor revision', example: '35000' })
+  @ApiProperty({ description: "Sync cursor revision", example: "35000" })
   revision!: string;
 }
 
 export class OccurrenceDto {
-  @ApiProperty({ format: 'uuid' })
+  @ApiProperty({ format: "uuid" })
   recurringEventId!: string;
 
-  @ApiProperty({ description: 'Timed: startAtUtc ISO, All-day: YYYY-MM-DD', example: '2026-02-26T03:00:00Z' })
+  @ApiProperty({
+    description: "Timed: startAtUtc ISO, All-day: YYYY-MM-DD",
+    example: "2026-02-26T03:00:00Z",
+  })
   occurrenceKey!: string;
 
-  @ApiProperty({ format: 'uuid' })
+  @ApiProperty({ format: "uuid" })
   calendarId!: string;
 
   @ApiProperty({ example: false })
   allDay!: boolean;
 
-  @ApiProperty({ example: '회의' })
+  @ApiProperty({ example: "회의" })
   title!: string;
 
   @ApiPropertyOptional()
@@ -110,19 +135,19 @@ export class OccurrenceDto {
   @ApiPropertyOptional()
   color?: string | null;
 
-  @ApiProperty({ example: 'Asia/Seoul' })
+  @ApiProperty({ example: "Asia/Seoul" })
   timezone!: string;
 
-  @ApiPropertyOptional({ description: 'UTC ISO' })
+  @ApiPropertyOptional({ description: "UTC ISO" })
   startAtUtc?: string;
 
-  @ApiPropertyOptional({ description: 'UTC ISO' })
+  @ApiPropertyOptional({ description: "UTC ISO" })
   endAtUtc?: string;
 
-  @ApiPropertyOptional({ description: 'YYYY-MM-DD' })
+  @ApiPropertyOptional({ description: "YYYY-MM-DD" })
   startDate?: string;
 
-  @ApiPropertyOptional({ description: 'YYYY-MM-DD (exclusive)' })
+  @ApiPropertyOptional({ description: "YYYY-MM-DD (exclusive)" })
   endDate?: string;
 
   @ApiProperty({ example: false })
@@ -140,11 +165,11 @@ export class ListEventsResponseDto {
 // ─── Create ─────────────────────────────────────────────────
 
 export class CreateEventDto {
-  @ApiProperty({ format: 'uuid' })
+  @ApiProperty({ format: "uuid" })
   @IsString()
   calendarId!: string;
 
-  @ApiProperty({ example: '회의' })
+  @ApiProperty({ example: "회의" })
   @IsString()
   @MaxLength(120)
   title!: string;
@@ -159,7 +184,7 @@ export class CreateEventDto {
   @IsString()
   location?: string;
 
-  @ApiProperty({ example: 'Asia/Seoul' })
+  @ApiProperty({ example: "Asia/Seoul" })
   @IsString()
   timezone!: string;
 
@@ -169,28 +194,40 @@ export class CreateEventDto {
   allDay?: boolean;
 
   // Timed
-  @ApiPropertyOptional({ description: 'Required when allDay=false', example: '2026-02-26T03:00:00Z' })
-  @ValidateIf(o => !o.allDay)
+  @ApiPropertyOptional({
+    description: "Required when allDay=false",
+    example: "2026-02-26T03:00:00Z",
+  })
+  @ValidateIf((o) => !o.allDay)
   @IsISO8601()
   startAtUtc!: string;
 
-  @ApiPropertyOptional({ description: 'Required when allDay=false', example: '2026-02-26T04:00:00Z' })
-  @ValidateIf(o => !o.allDay)
+  @ApiPropertyOptional({
+    description: "Required when allDay=false",
+    example: "2026-02-26T04:00:00Z",
+  })
+  @ValidateIf((o) => !o.allDay)
   @IsISO8601()
   endAtUtc!: string;
 
   // All-day
-  @ApiPropertyOptional({ description: 'Required when allDay=true', example: '2026-02-26' })
-  @ValidateIf(o => o.allDay)
+  @ApiPropertyOptional({
+    description: "Required when allDay=true",
+    example: "2026-02-26",
+  })
+  @ValidateIf((o) => o.allDay)
   @IsString()
   startDate!: string;
 
-  @ApiPropertyOptional({ description: 'Required when allDay=true (exclusive)', example: '2026-02-27' })
-  @ValidateIf(o => o.allDay)
+  @ApiPropertyOptional({
+    description: "Required when allDay=true (exclusive)",
+    example: "2026-02-27",
+  })
+  @ValidateIf((o) => o.allDay)
   @IsString()
   endDate!: string;
 
-  @ApiPropertyOptional({ example: '#FFAA00' })
+  @ApiPropertyOptional({ example: "#FFAA00" })
   @IsOptional()
   @IsString()
   color?: string;
@@ -205,7 +242,7 @@ export class CreateEventDto {
 // ─── Update ─────────────────────────────────────────────────
 
 export class UpdateEventDto {
-  @ApiProperty({ description: 'Optimistic lock version', example: 3 })
+  @ApiProperty({ description: "Optimistic lock version", example: 3 })
   @IsInt()
   @Min(1)
   version!: number;
@@ -226,7 +263,7 @@ export class UpdateEventDto {
   @IsString()
   location?: string;
 
-  @ApiPropertyOptional({ example: 'Asia/Seoul' })
+  @ApiPropertyOptional({ example: "Asia/Seoul" })
   @IsOptional()
   @IsString()
   timezone?: string;
