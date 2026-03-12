@@ -4,6 +4,9 @@ import { PrismaService } from "./prisma.service";
 describe("PrismaService", () => {
   let service: PrismaService;
 
+  const dbUrl = process.env.DATABASE_URL;
+  const describeIfDb = dbUrl ? describe : describe.skip;
+
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [PrismaService],
@@ -16,7 +19,7 @@ describe("PrismaService", () => {
     expect(service).toBeDefined();
   });
 
-  describe("connectivity", () => {
+  describeIfDb("connectivity", () => {
     beforeAll(async () => {
       await service.onModuleInit();
     });
